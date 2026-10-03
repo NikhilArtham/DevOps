@@ -780,8 +780,8 @@ Prevent recurrence
 | Structured mount information | `findmnt` |
 | Directory size | `du -sh <dir>` |
 | Top-level directory sizes | `du -xh --max-depth=1 <dir>` |
-| Sort largest first | `du -xh --max-depth=1 <dir> | sort -hr` |
-| Find large files | `find ... -type f ... | sort -hr` |
+| Sort largest first | `du -xh --max-depth=1 <dir> \| sort -hr` |
+| Find large files | `find ... -type f ... \| sort -hr` |
 | Persistent mounts | `cat /etc/fstab` |
 | Deleted-but-open files | `lsof +L1` |
 
@@ -789,28 +789,377 @@ Prevent recurrence
 
 # 21. Interview Questions
 
-Before considering this topic complete, be able to answer:
+> Click the arrow next to each question to reveal the answer.
 
-1. What is a filesystem?
-2. What is a mount point?
-3. What does `df -h` show?
-4. What does `du -sh` show?
-5. Difference between `df` and `du`?
-6. What does `lsblk -f` show?
-7. How do you find which filesystem is full?
-8. How do you find the largest directory?
-9. How do you find the largest files?
-10. What is an inode?
-11. Can a filesystem have free disk space but no inodes?
-12. How do you check inode usage?
-13. What causes inode exhaustion?
-14. How would you troubleshoot a filesystem at 100%?
-15. What does `-xdev` do?
-16. Why might `df` show 95% usage while `du` doesn't explain it?
-17. What is a deleted-but-open file?
-18. How would you safely clean a production filesystem?
-19. What is `/etc/fstab`?
-20. What is the difference between a block device, filesystem, and mount point?
+<details>
+<summary>1. What is a filesystem?</summary>
+
+A filesystem is the structure and set of rules Linux uses to store, organize, name, and retrieve files and directories on a storage device.
+
+Examples include **ext4, XFS, and Btrfs**.
+
+</details>
+
+<details>
+<summary>2. What is a mount point?</summary>
+
+A mount point is a directory where a filesystem is attached to the Linux directory tree.
+
+Example:
+
+```text
+/dev/sdb1 → /data
+```
+
+After mounting, the contents of the filesystem are accessible through `/data`.
+
+</details>
+
+<details>
+<summary>3. What does df -h show?</summary>
+
+`df -h` shows filesystem-level disk usage in human-readable units.
+
+It shows values such as:
+
+- Total size
+- Used space
+- Available space
+- Usage percentage
+- Mount point
+
+Use it to identify **which filesystem is running out of space**.
+
+</details>
+
+<details>
+<summary>4. What does du -sh show?</summary>
+
+`du -sh <dir>` shows the total disk space consumed by a directory in human-readable form.
+
+Example:
+
+```bash
+du -sh /var/log
+```
+
+This helps identify **which directory is consuming space**.
+
+</details>
+
+<details>
+<summary>5. What is the difference between df and du?</summary>
+
+`df` reports **filesystem-level usage**, while `du` reports **directory/file-level usage**.
+
+Typical troubleshooting:
+
+```text
+df -h
+  ↓
+Which filesystem is full?
+  ↓
+du
+  ↓
+Which directory/file is consuming the space?
+```
+
+</details>
+
+<details>
+<summary>6. What does lsblk -f show?</summary>
+
+`lsblk -f` shows block devices together with filesystem information.
+
+It can show:
+
+- Device/partition
+- Filesystem type
+- Filesystem label
+- UUID
+- Mount point
+
+It is useful for understanding the relationship between **disks, partitions, filesystems, and mounts**.
+
+</details>
+
+<details>
+<summary>7. How do you find which filesystem is full?</summary>
+
+Run:
+
+```bash
+df -h
+```
+
+Look at the `Use%` column and identify the filesystem with high utilization.
+
+Also check inode usage:
+
+```bash
+df -i
+```
+
+</details>
+
+<details>
+<summary>8. How do you find the largest directory?</summary>
+
+Start with:
+
+```bash
+du -xh --max-depth=1 / | sort -hr
+```
+
+Then drill into the largest directory:
+
+```bash
+du -xh --max-depth=1 /var | sort -hr
+```
+
+Continue until you identify the directory responsible for the growth.
+
+</details>
+
+<details>
+<summary>9. How do you find the largest files?</summary>
+
+One approach is:
+
+```bash
+find /var -type f -printf '%s %p\n' 2>/dev/null | sort -nr | head
+```
+
+For human-readable output:
+
+```bash
+find /var -type f -exec du -h {} + 2>/dev/null | sort -hr | head
+```
+
+Use targeted paths on production systems because broad searches can be expensive.
+
+</details>
+
+<details>
+<summary>10. What is an inode?</summary>
+
+An inode is a filesystem data structure that stores metadata about a file.
+
+It can contain information such as:
+
+- File type
+- Permissions
+- Owner/group
+- Size
+- Timestamps
+- References to the file's data blocks
+
+The filename is associated with the inode through a directory entry.
+
+</details>
+
+<details>
+<summary>11. Can a filesystem have free disk space but no inodes?</summary>
+
+Yes.
+
+A filesystem can have free block space but reach **100% inode usage**. In that situation, creating new files can fail even though `df -h` shows free space.
+
+Check with:
+
+```bash
+df -i
+```
+
+A common cause is a very large number of small files.
+
+</details>
+
+<details>
+<summary>12. How do you check inode usage?</summary>
+
+Run:
+
+```bash
+df -i
+```
+
+For human-readable inode information:
+
+```bash
+df -ih
+```
+
+Check the `IUse%` column to see inode utilization.
+
+</details>
+
+<details>
+<summary>13. What causes inode exhaustion?</summary>
+
+Common causes include:
+
+- Millions of small files
+- Temporary files
+- Session files
+- Cache files
+- Mail queues
+- Container/image layer files
+- Log fragments
+- Application bugs that continuously create files
+
+The key point is that **each file consumes an inode**.
+
+</details>
+
+<details>
+<summary>14. How would you troubleshoot a filesystem at 100%?</summary>
+
+Use a structured flow:
+
+```text
+df -h
+  ↓
+Identify the full filesystem
+  ↓
+df -i
+  ↓
+Check space vs inode exhaustion
+  ↓
+lsblk -f
+  ↓
+Understand the storage layout
+  ↓
+findmnt
+  ↓
+Check mounts
+  ↓
+du
+  ↓
+Find large directories
+  ↓
+find
+  ↓
+Find large files
+  ↓
+lsof +L1
+  ↓
+Check deleted-but-open files
+  ↓
+Identify the application
+  ↓
+Clean safely
+  ↓
+Prevent recurrence
+```
+
+Do not immediately delete files without understanding their purpose and service impact.
+
+</details>
+
+<details>
+<summary>15. What does -xdev do?</summary>
+
+`find -xdev` prevents `find` from crossing into directories on other mounted filesystems.
+
+Example:
+
+```bash
+find / -xdev -type f
+```
+
+This is useful when investigating one filesystem without unintentionally scanning other mounted filesystems.
+
+</details>
+
+<details>
+<summary>16. Why might df show 95% usage while du doesn't explain it?</summary>
+
+A common reason is a **deleted-but-open file**.
+
+A process may still have a file open after its directory entry has been deleted. The space remains allocated until the process closes the file descriptor.
+
+Check with:
+
+```bash
+lsof +L1
+```
+
+The relevant process may need to be restarted, but first assess the service impact.
+
+</details>
+
+<details>
+<summary>17. What is a deleted-but-open file?</summary>
+
+It is a file whose directory entry has been deleted while a running process still holds the file open.
+
+The filename disappears from the directory, but the file's disk blocks remain allocated until the process closes the file descriptor.
+
+Check with:
+
+```bash
+lsof +L1
+```
+
+</details>
+
+<details>
+<summary>18. How would you safely clean a production filesystem?</summary>
+
+First identify the cause before removing anything:
+
+1. Confirm the affected filesystem with `df -h`.
+2. Check inode usage with `df -i`.
+3. Locate large directories/files with `du` and `find`.
+4. Identify the owning application or service.
+5. Check whether files are actively being written or used.
+6. Verify retention and backup requirements.
+7. Clean up using the application's supported process where possible.
+8. Confirm that usage drops.
+9. Fix the underlying retention, logging, cache, or application issue.
+
+Avoid blindly using `rm` as the first response.
+
+</details>
+
+<details>
+<summary>19. What is /etc/fstab?</summary>
+
+`/etc/fstab` is the configuration file that defines filesystems and how they should be mounted, commonly during boot.
+
+A typical entry contains:
+
+```text
+UUID=xxxx-xxxx  /data  ext4  defaults  0  2
+```
+
+Changes should be validated carefully because an incorrect entry can cause boot or service problems.
+
+</details>
+
+<details>
+<summary>20. What is the difference between a block device, filesystem, and mount point?</summary>
+
+**Block device:** represents storage that can provide blocks of data, such as `/dev/sdb`.
+
+**Filesystem:** organizes data, files, directories, and metadata on that storage, such as ext4 or XFS.
+
+**Mount point:** the directory where the filesystem is attached to the Linux directory tree, such as `/data`.
+
+Mental model:
+
+```text
+Block device
+    ↓
+Filesystem
+    ↓
+Mount point
+    ↓
+Directories and files
+```
+
+</details>
 
 ---
 
