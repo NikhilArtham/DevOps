@@ -139,7 +139,8 @@ stat file.txt
 
 Change owner:
 
-```sudo chown appuser file.txt
+```bash
+sudo chown appuser file.txt
 ```
 
 Change owner and group:
@@ -150,13 +151,13 @@ sudo chown appuser:appgroup file.txt
 
 Change group:
 
-```
+```bash
 sudo chgrp appgroup file.txt
 ```
 
 Recursive ownership change:
 
-```
+```bash
 sudo chown -R appuser:appgroup /opt/myapp
 ```
 
