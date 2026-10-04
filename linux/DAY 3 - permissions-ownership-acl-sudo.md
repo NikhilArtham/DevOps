@@ -110,6 +110,45 @@ chmod -R 750 /opt/app
 
 Prefer targeted changes over unnecessary recursive permission changes.
 
+### Command anatomy
+
+Instead of memorizing commands, understand what each part means:
+
+| Command | Meaning |
+|---|---|
+| `chmod` | **ch**ange **mod**e — changes file/directory permissions |
+| `u` | user/owner |
+| `g` | group |
+| `o` | others |
+| `a` | all: user + group + others |
+| `+` | add a permission |
+| `-` | remove a permission |
+| `=` | set permissions exactly |
+| `r` | read |
+| `w` | write |
+| `x` | execute/traverse |
+| `-R` | recursive — apply to the directory and its contents |
+
+Examples:
+
+```bash
+chmod u+x deploy.sh
+chmod g-w config.txt
+chmod o-r secret.txt
+chmod ug+rw shared.txt
+chmod a+r file.txt
+chmod u=rwx,g=rx,o= file.txt
+```
+
+Read them as sentences:
+
+- `chmod u+x deploy.sh` → add execute permission for the owner.
+- `chmod g-w config.txt` → remove write permission from the group.
+- `chmod o-r secret.txt` → remove read permission from others.
+- `chmod ug+rw shared.txt` → add read/write permission for owner and group.
+- `chmod a+r file.txt` → add read permission for everyone.
+- `chmod u=rwx,g=rx,o= file.txt` → set owner to rwx, group to r-x, others to no permissions.
+
 ### Symbolic notation
 
 - `u` = user/owner
@@ -160,6 +199,32 @@ Recursive ownership change:
 ```bash
 sudo chown -R appuser:appgroup /opt/myapp
 ```
+
+### Command anatomy
+
+| Command/part | Meaning |
+|---|---|
+| `chown` | **ch**ange **own**er — changes file/directory ownership |
+| `user` | New owner |
+| `user:group` | Set both owner and group |
+| `:group` | Change group while keeping the owner |
+| `-R` | Recursive — apply ownership change to contents |
+
+Examples:
+
+```bash
+chown appuser file.txt
+chown appuser:appgroup file.txt
+chown :appgroup file.txt
+chown -R appuser:appgroup /opt/myapp
+```
+
+Read them as:
+
+- `chown appuser file.txt` → make `appuser` the owner.
+- `chown appuser:appgroup file.txt` → make `appuser` owner and `appgroup` group.
+- `chown :appgroup file.txt` → change only the group.
+- `chown -R appuser:appgroup /opt/myapp` → recursively change owner/group for the application tree.
 
 ### Production warning
 
@@ -236,6 +301,78 @@ Remove extended ACL entries:
 
 ```bash
 setfacl -b file.txt
+```
+
+### ACL command anatomy
+
+The most important command structure is:
+
+```bash
+setfacl -m u:alice:r file.txt
+```
+
+Break it down:
+
+| Part | Meaning |
+|---|---|
+| `setfacl` | Set/modify Access Control Lists |
+| `-m` | **modify** an ACL entry; add or change the specified rule |
+| `u` | user entry |
+| `alice` | username receiving the ACL |
+| `:` | separates ACL fields |
+| `r` | read permission |
+| `file.txt` | target file |
+
+So:
+
+`setfacl -m u:alice:r file.txt`
+
+means:
+
+> Modify the ACL of `file.txt` and give user `alice` read permission.
+
+Group example:
+
+```bash
+setfacl -m g:developers:rw file.txt
+```
+
+means:
+
+> Modify the ACL and give the `developers` group read/write permission.
+
+Important `setfacl` options:
+
+| Option | Meaning |
+|---|---|
+| `-m` | **modify** or add ACL entries |
+| `-x` | **remove** the specified ACL entry |
+| `-b` | **remove all extended ACL entries**, returning the file to the basic owner/group/other ACL model |
+| `-d` | work with the directory's **default ACL**, which is inherited by newly created entries |
+| `-R` | recursively apply the ACL operation |
+
+Examples:
+
+```bash
+setfacl -m u:alice:r file.txt
+setfacl -x u:alice file.txt
+setfacl -b file.txt
+setfacl -m d:g:developers:rwx /shared
+setfacl -R -m g:developers:rw /shared
+```
+
+**Important distinction:**
+
+- `-x u:alice` → remove **Alice's specific ACL entry**.
+- `-b` → remove **all extended ACL entries** from the target.
+- `-m` → add or modify an ACL entry.
+- `-d` → modify the **default ACL** of a directory.
+
+Check the result with:
+
+```bash
+getfacl file.txt
+getfacl /shared
 ```
 
 ### Default ACLs
@@ -326,6 +463,28 @@ It prevents users from deleting/renaming files they do not own in a sticky direc
 
 ## 10. sudo basics
 
+### sudo command anatomy
+
+| Part | Meaning |
+|---|---|
+| `sudo` | run a command with elevated privileges if authorized |
+| `-u user` | run the command as the specified user |
+| `-l` | list the current user's sudo privileges |
+
+Examples:
+
+```bash
+sudo systemctl restart nginx
+sudo -u appuser whoami
+sudo -l
+```
+
+Read them as:
+
+- `sudo systemctl restart nginx` → run the restart command with elevated privileges.
+- `sudo -u appuser whoami` → run `whoami` as `appuser`.
+- `sudo -l` → list what the current user is allowed to run through sudo.
+
 `sudo` allows an authorized user to execute a command with elevated privileges.
 
 Examples:
@@ -393,6 +552,29 @@ unless there is a deliberate, controlled requirement.
 ---
 
 ## 12. sudo troubleshooting
+
+### Useful command meanings
+
+| Command | Meaning |
+|---|---|
+| `whoami` | show the current username |
+| `id` | show UID, GID and group membership |
+| `groups` | show groups for the current user |
+| `sudo -l` | list sudo privileges |
+| `sudo visudo -c` | check sudoers syntax |
+| `command -v systemctl` | show the command path that the shell resolves |
+| `namei -l /path` | show permissions/ownership for every component of a path |
+| `getfacl /path` | display ACL entries |
+| `journalctl` | query systemd journal logs |
+| `grep sudo file` | search matching lines containing `sudo` |
+
+### Option meanings
+
+- `-l` in `sudo -l` = **list**.
+- `-u appuser` in `sudo -u appuser command` = run as the specified **user**.
+- `-c` in `visudo -c` = **check** configuration without editing it.
+- `-l` in `namei -l` = show detailed/list-style permission information for each path component.
+- `-u` in `journalctl -u nginx` = filter logs for the specified **systemd unit**.
 
 When:
 
