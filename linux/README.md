@@ -38,6 +38,7 @@ Linux notes for DevOps interview preparation and real-world troubleshooting.
 - sudo, sudoers, visudo, sudo -l
 - Production Permission denied troubleshooting
 - Linux vs AWS authorization layers
+- Command/flag meanings
 - Interview questions + practical labs
 
 [Open DAY 3 notes](./DAY%203%20-%20permissions-ownership-acl-sudo.md)
@@ -56,10 +57,24 @@ Linux notes for DevOps interview preparation and real-world troubleshooting.
 
 [Open DAY 4 notes](./DAY%204%20-%20systemd-services.md)
 
+### DAY 5 — journalctl & Log-Driven Troubleshooting
+- systemd-journald and journalctl
+- journalctl command/flag meanings
+- Service, boot, time and priority filtering
+- Real-time log monitoring
+- Progressive log narrowing
+- Log-driven root-cause troubleshooting
+- Realistic application/database failure scenario
+- Journal persistence and disk usage
+- AWS/EC2 log troubleshooting connection
+- Practical failure lab
+- Interview questions + production mental model
+
+[Open DAY 5 notes](./DAY%205%20-%20journalctl-log-troubleshooting.md)
+
 ## Upcoming Topics
 
 - Users and groups
 - Networking commands
 - Memory troubleshooting
-- Logs
 - Shell basics
