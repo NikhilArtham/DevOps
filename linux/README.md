@@ -72,6 +72,22 @@ Linux notes for DevOps interview preparation and real-world troubleshooting.
 
 [Open DAY 5 notes](./DAY%205%20-%20journalctl-log-troubleshooting.md)
 
+### DAY 6 — grep, sed, awk, sort & xargs for Production Debugging
+- grep search and filtering
+- sed text transformation
+- awk field extraction and calculations
+- sort numeric/human-readable ordering
+- xargs command argument construction
+- Command/flag meanings and command anatomy
+- Production-safe pipelines
+- Log analysis with combined shell commands
+- Realistic API 500/latency troubleshooting scenario
+- AWS/EC2 and Kubernetes log-debugging connection
+- Practical debugging lab
+- Interview questions + production mental model
+
+[Open DAY 6 notes](./DAY%206%20-%20grep-sed-awk-sort-xargs.md)
+
 ## Upcoming Topics
 
 - Users and groups
