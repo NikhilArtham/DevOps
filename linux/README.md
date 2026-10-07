@@ -88,6 +88,24 @@ Linux notes for DevOps interview preparation and real-world troubleshooting.
 
 [Open DAY 6 notes](./DAY%206%20-%20grep-sed-awk-sort-xargs.md)
 
+### DAY 7 — Bash Scripting: Variables, Loops, Functions & Exit Codes
+- Bash scripts and shebangs
+- Variables, quoting and command substitution
+- Environment variables and script arguments
+- if conditions and file/string tests
+- for/while loops, break and continue
+- Functions, local variables, return vs exit
+- Exit codes and CI/CD failure handling
+- &&, || and ; command chaining
+- set -euo pipefail
+- Bash syntax checking and tracing
+- Realistic deployment-script failure scenario
+- AWS CLI and Kubernetes scripting connection
+- Practical health-check lab
+- Interview questions + production mental model
+
+[Open DAY 7 notes](./DAY%207%20-%20bash-scripting.md)
+
 ## Upcoming Topics
 
 - Users and groups
