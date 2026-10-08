@@ -106,6 +106,21 @@ Linux notes for DevOps interview preparation and real-world troubleshooting.
 
 [Open DAY 7 notes](./DAY%207%20-%20bash-scripting.md)
 
+### DAY 8 — Bash Error Handling, Traps & Safe Automation
+- Explicit error handling and accurate exit codes
+- set -euo pipefail limitations
+- trap, EXIT, ERR and signal handling
+- Cleanup and graceful shutdown
+- Temporary files/directories with mktemp
+- flock and duplicate-job prevention
+- Input validation and safe command construction
+- Realistic failed deployment + cleanup scenario
+- AWS CLI and Kubernetes automation safety
+- Practical trap/error-handling lab
+- Interview questions + production mental model
+
+[Open DAY 8 notes](./DAY%208%20-%20bash-error-handling-traps.md)
+
 ## Upcoming Topics
 
 - Users and groups
