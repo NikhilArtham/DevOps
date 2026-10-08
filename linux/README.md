@@ -2,6 +2,14 @@
 
 Linux notes for DevOps interview preparation and real-world troubleshooting.
 
+## 🎯 Central Interview Question Bank
+
+All Linux interview questions from every DAY are also maintained in one centralized, revision-friendly file. Each question has a clickable answer.
+
+[🧠 Open Linux Interview Questions](./INTERVIEW%20QUESTIONS.md)
+
+---
+
 ## Study Progress
 
 ### DAY 1 — Process Management
@@ -127,3 +135,15 @@ Linux notes for DevOps interview preparation and real-world troubleshooting.
 - Networking commands
 - Memory troubleshooting
 - Shell basics
+
+---
+
+## 📌 Daily Update Rule
+
+For every new Linux study DAY:
+
+1. Create/update the DAY-wise topic file with complete notes and its interview questions.
+2. Update this README with the new DAY and link.
+3. Add the new interview questions to the centralized **[Linux Interview Questions](./INTERVIEW%20QUESTIONS.md)** file.
+4. Keep the DAY file's own interview section as well, so the topic remains self-contained.
+5. Do not create duplicate topic files when an existing canonical file has already been established.
