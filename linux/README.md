@@ -2,11 +2,17 @@
 
 Linux notes for DevOps interview preparation and real-world troubleshooting.
 
-## 🎯 Central Interview Question Bank
+## 🎯 Central Study Resources
 
-All Linux interview questions from every DAY are also maintained in one centralized, revision-friendly file. Each question has a clickable answer.
+### 🧠 Interview Question Bank
+All Linux interview questions from every DAY are maintained in one centralized, revision-friendly file. Each question has a clickable answer.
 
-[🧠 Open Linux Interview Questions](./INTERVIEW%20QUESTIONS.md)
+[Open Linux Interview Questions](./INTERVIEW%20QUESTIONS.md)
+
+### 🧪 Practical Lab Workbook
+All hands-on labs and practical exercises from every DAY are maintained in one centralized workbook so you can practice everything from one place.
+
+[Open Linux Practical Labs](./LABS.md)
 
 ---
 
@@ -129,6 +135,33 @@ All Linux interview questions from every DAY are also maintained in one centrali
 
 [Open DAY 8 notes](./DAY%208%20-%20bash-error-handling-traps.md)
 
+### DAY 9 — Cron, systemd Timers & Scheduled Automation
+- Cron and crontab
+- Cron expression fields and operators
+- User vs system cron
+- Cron environment/PATH troubleshooting
+- Cron logging and failed-job investigation
+- systemd `.service` + `.timer` architecture
+- OnCalendar, OnBootSec and interval timers
+- Persistent timers
+- systemctl list-timers / status / daemon-reload
+- journalctl troubleshooting for scheduled services
+- Timer vs service failure diagnosis
+- EC2 scheduled automation and AWS integration
+- AWS-native scheduling comparison
+- Practical scheduling incident
+- Interview questions + production mental model
+
+[Open DAY 9 notes](./DAY%209%20-%20cron-systemd-timers-scheduled-automation.md)
+
+---
+
+## 🧪 Practical Practice
+
+[Open the centralized Linux Lab Workbook](./LABS.md)
+
+Use the workbook to repeat every lab from DAY 1 onward and finish the final production-style scheduling capstone.
+
 ## Upcoming Topics
 
 - Users and groups
@@ -142,8 +175,9 @@ All Linux interview questions from every DAY are also maintained in one centrali
 
 For every new Linux study DAY:
 
-1. Create/update the DAY-wise topic file with complete notes and its interview questions.
+1. Create/update the DAY-wise topic file with complete notes, practical lab and interview questions.
 2. Update this README with the new DAY and link.
 3. Add the new interview questions to the centralized **[Linux Interview Questions](./INTERVIEW%20QUESTIONS.md)** file.
-4. Keep the DAY file's own interview section as well, so the topic remains self-contained.
-5. Do not create duplicate topic files when an existing canonical file has already been established.
+4. Add the new practical exercises to the centralized **[Linux Practical Labs](./LABS.md)** workbook.
+5. Keep the DAY file's own interview and practical sections as well, so the topic remains self-contained.
+6. Do not create duplicate topic files when an existing canonical file has already been established.
