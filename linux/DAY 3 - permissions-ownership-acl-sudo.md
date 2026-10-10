@@ -1,86 +1,47 @@
 # DAY 3 - Permissions, Ownership, ACLs and sudo Troubleshooting
 
-## 1. What this topic covers
+## 1. Access-control mental model
 
-Linux access control is built around four closely related areas:
+Linux access troubleshooting should follow:
 
-1. **Permissions** — read, write, execute bits for owner/group/others.
-2. **Ownership** — which user and group own a file or directory.
-3. **ACLs (Access Control Lists)** — extra per-user/per-group permissions beyond the basic mode bits.
-4. **sudo** — controlled privilege escalation and the configuration that determines who may run what as another user.
+**Identity → Path traversal → Ownership → Mode bits → ACLs → sudo policy → Application restrictions**
 
-A useful troubleshooting model is:
+This prevents blind `chmod 777` or recursive permission changes.
 
-**Identity → Path traversal → Ownership → Mode bits → ACLs → sudo policy → Application-specific restrictions**
+## 2. Permissions
 
----
-
-## 2. Linux permission model
-
-Check permissions with:
+Check permissions:
 
 ```bash
 ls -l file.txt
+stat file.txt
 ```
 
-Example:
-
-```text
--rwxr-x--- 1 nikhil devops 1200 Oct  3 10:00 deploy.sh
-```
-
-Breakdown:
-
-- `-` = regular file
-- `rwx` = owner permissions
-- `r-x` = group permissions
-- `---` = others permissions
-- `nikhil` = owner
-- `devops` = owning group
-
-### Permission meanings
-
-For a regular file:
+For regular files:
 
 | Permission | Meaning |
 |---|---|
-| `r` | Read file contents |
-| `w` | Modify file contents |
-| `x` | Execute the file |
+| `r` | Read contents |
+| `w` | Modify contents |
+| `x` | Execute |
 
 For directories:
 
 | Permission | Meaning |
 |---|---|
-| `r` | List directory entries |
+| `r` | List entries |
 | `w` | Create/delete/rename entries |
 | `x` | Traverse/access entries |
 
-**Important:** Directory `x` is especially important. A user may have read permission on a directory but still be unable to access files inside it without execute/traverse permission.
-
----
-
-## 3. Numeric permissions
-
-The standard values are:
-
-| Permission | Value |
-|---|---:|
-| `r` | 4 |
-| `w` | 2 |
-| `x` | 1 |
-
-Examples:
+Numeric values:
 
 ```text
-7 = rwx
-6 = rw-
-5 = r-x
-4 = r--
-0 = ---
+r = 4
+w = 2
+x = 1
 ```
 
-Therefore:
+Examples:
 
 ```bash
 chmod 755 script.sh
@@ -88,48 +49,7 @@ chmod 644 config.txt
 chmod 700 private-key.pem
 ```
 
-Typical meanings:
-
-- `755` → owner can modify/execute; everyone else can read/execute.
-- `644` → owner can read/write; others can read.
-- `700` → only owner has access.
-
----
-
-## 4. chmod
-
-Change permissions:
-
-```bash
-chmod 755 script.sh
-chmod u+x script.sh
-chmod g-w config.txt
-chmod o-r secret.txt
-chmod -R 750 /opt/app
-```
-
-Prefer targeted changes over unnecessary recursive permission changes.
-
-### Command anatomy
-
-Instead of memorizing commands, understand what each part means:
-
-| Command | Meaning |
-|---|---|
-| `chmod` | **ch**ange **mod**e — changes file/directory permissions |
-| `u` | user/owner |
-| `g` | group |
-| `o` | others |
-| `a` | all: user + group + others |
-| `+` | add a permission |
-| `-` | remove a permission |
-| `=` | set permissions exactly |
-| `r` | read |
-| `w` | write |
-| `x` | execute/traverse |
-| `-R` | recursive — apply to the directory and its contents |
-
-Examples:
+## 3. chmod command anatomy
 
 ```bash
 chmod u+x deploy.sh
@@ -138,156 +58,78 @@ chmod o-r secret.txt
 chmod ug+rw shared.txt
 chmod a+r file.txt
 chmod u=rwx,g=rx,o= file.txt
+chmod -R 750 /opt/app
 ```
 
-Read them as sentences:
-
-- `chmod u+x deploy.sh` → add execute permission for the owner.
-- `chmod g-w config.txt` → remove write permission from the group.
-- `chmod o-r secret.txt` → remove read permission from others.
-- `chmod ug+rw shared.txt` → add read/write permission for owner and group.
-- `chmod a+r file.txt` → add read permission for everyone.
-- `chmod u=rwx,g=rx,o= file.txt` → set owner to rwx, group to r-x, others to no permissions.
-
-### Symbolic notation
+Meaning:
 
 - `u` = user/owner
 - `g` = group
 - `o` = others
 - `a` = all
+- `+` = add
+- `-` = remove
+- `=` = set exactly
+- `r` = read
+- `w` = write
+- `x` = execute/traverse
+- `-R` = recursive
 
-Examples:
+Prefer targeted changes over unnecessary recursive changes.
 
-```bash
-chmod u+x deploy.sh
-chmod g+r config.txt
-chmod o-r secret.txt
-chmod ug+rw shared.txt
-```
-
----
-
-## 5. Ownership
-
-View ownership:
+## 4. Ownership
 
 ```bash
 ls -l file.txt
-stat file.txt
-```
-
-Change owner:
-
-```bash
-sudo chown appuser file.txt
-```
-
-Change owner and group:
-
-```bash
-sudo chown appuser:appgroup file.txt
-```
-
-Change group:
-
-```bash
-sudo chgrp appgroup file.txt
-```
-
-Recursive ownership change:
-
-```bash
-sudo chown -R appuser:appgroup /opt/myapp
-```
-
-### Command anatomy
-
-| Command/part | Meaning |
-|---|---|
-| `chown` | **ch**ange **own**er — changes file/directory ownership |
-| `user` | New owner |
-| `user:group` | Set both owner and group |
-| `:group` | Change group while keeping the owner |
-| `-R` | Recursive — apply ownership change to contents |
-
-Examples:
-
-```bash
 chown appuser file.txt
 chown appuser:appgroup file.txt
 chown :appgroup file.txt
+chgrp appgroup file.txt
 chown -R appuser:appgroup /opt/myapp
 ```
 
-Read them as:
+Command anatomy:
 
-- `chown appuser file.txt` → make `appuser` the owner.
-- `chown appuser:appgroup file.txt` → make `appuser` owner and `appgroup` group.
-- `chown :appgroup file.txt` → change only the group.
-- `chown -R appuser:appgroup /opt/myapp` → recursively change owner/group for the application tree.
+- `chown` = change owner
+- `user` = new owner
+- `user:group` = set owner and group
+- `:group` = change group only
+- `-R` = recursive
 
-### Production warning
+Avoid blindly running `chown -R` or `chmod -R 777` on system/application trees.
 
-Do not blindly run:
+## 5. Path traversal and namei
 
-```bash
-chown -R ...
-chmod -R 777 ...
-```
+A file can have correct permissions while access still fails because the user cannot traverse a parent directory.
 
-against system directories or application trees. Recursive changes can break services and create security problems.
-
----
-
-## 6. Effective access is also about the path
-
-Suppose:
+For:
 
 ```text
 /opt/app/config/prod.env
 ```
 
-Even if `prod.env` has correct permissions, access can fail because the user cannot traverse:
-
-```text
-/opt
-/opt/app
-/opt/app/config
-```
-
-Use:
+inspect every path component:
 
 ```bash
 namei -l /opt/app/config/prod.env
 ```
 
-This is one of the most useful commands when debugging:
+Directory `x` permission is especially important for traversal.
 
-```text
-Permission denied
-```
+## 6. ACLs
 
----
+ACLs provide more granular permissions for specific users/groups beyond owner/group/other.
 
-## 7. ACLs
-
-ACLs allow permissions for specific users or groups in addition to the traditional owner/group/other model.
-
-Check ACLs:
+Inspect:
 
 ```bash
 getfacl file.txt
 ```
 
-Add a user ACL:
+Modify:
 
 ```bash
 setfacl -m u:alice:r file.txt
-```
-
-Give a group read/write:
-
-```bash
 setfacl -m g:developers:rw file.txt
 ```
 
@@ -297,143 +139,54 @@ Remove a specific ACL:
 setfacl -x u:alice file.txt
 ```
 
-Remove extended ACL entries:
+Remove all extended ACL entries:
 
 ```bash
 setfacl -b file.txt
 ```
 
-### ACL command anatomy
-
-The most important command structure is:
-
-```bash
-setfacl -m u:alice:r file.txt
-```
-
-Break it down:
-
-| Part | Meaning |
-|---|---|
-| `setfacl` | Set/modify Access Control Lists |
-| `-m` | **modify** an ACL entry; add or change the specified rule |
-| `u` | user entry |
-| `alice` | username receiving the ACL |
-| `:` | separates ACL fields |
-| `r` | read permission |
-| `file.txt` | target file |
-
-So:
-
-`setfacl -m u:alice:r file.txt`
-
-means:
-
-> Modify the ACL of `file.txt` and give user `alice` read permission.
-
-Group example:
-
-```bash
-setfacl -m g:developers:rw file.txt
-```
-
-means:
-
-> Modify the ACL and give the `developers` group read/write permission.
-
-Important `setfacl` options:
-
-| Option | Meaning |
-|---|---|
-| `-m` | **modify** or add ACL entries |
-| `-x` | **remove** the specified ACL entry |
-| `-b` | **remove all extended ACL entries**, returning the file to the basic owner/group/other ACL model |
-| `-d` | work with the directory's **default ACL**, which is inherited by newly created entries |
-| `-R` | recursively apply the ACL operation |
-
-Examples:
-
-```bash
-setfacl -m u:alice:r file.txt
-setfacl -x u:alice file.txt
-setfacl -b file.txt
-setfacl -m d:g:developers:rwx /shared
-setfacl -R -m g:developers:rw /shared
-```
-
-**Important distinction:**
-
-- `-x u:alice` → remove **Alice's specific ACL entry**.
-- `-b` → remove **all extended ACL entries** from the target.
-- `-m` → add or modify an ACL entry.
-- `-d` → modify the **default ACL** of a directory.
-
-Check the result with:
-
-```bash
-getfacl file.txt
-getfacl /shared
-```
-
-### Default ACLs
-
-Default ACLs on directories can control permissions inherited by newly created files/directories.
+Default ACL on a directory:
 
 ```bash
 setfacl -m d:g:developers:rwx /shared
 ```
 
-Inspect:
+Important flags:
+
+- `-m` = modify/add ACL entry
+- `-x` = remove the specified ACL entry
+- `-b` = remove all extended ACL entries
+- `-d` = work with a directory default ACL inherited by new entries
+- `-R` = recursive
+- `u` = user ACL entry
+- `g` = group ACL entry
+
+Example anatomy:
 
 ```bash
-getfacl /shared
+setfacl -m u:alice:r file.txt
 ```
 
----
+means: modify the ACL and give user `alice` read permission on `file.txt`.
 
-## 8. ACL mask — common interview trap
+## 7. ACL mask
+
+The ACL mask limits effective permissions for named users, named groups and the owning group.
 
 Example:
 
 ```text
-user::rwx
 user:alice:rwx
-group::r-x
-mask::r-x
-other::---
-```
-
-The **ACL mask** limits the effective permissions of named users, named groups, and the owning group.
-
-So even though:
-
-```text
-user:alice:rwx
-```
-
-is present, the effective access can be restricted by:
-
-```text
 mask::r-x
 ```
 
-Check the `effective:` value in `getfacl` output.
+Alice's effective permissions cannot exceed the mask. Check `effective:` values in `getfacl` output.
 
----
-
-## 9. Special permissions
+## 8. Special permissions
 
 ### setuid
 
-A setuid executable runs with the effective UID of the file owner.
-
-Check:
-
-```bash
-ls -l /path/to/file
-```
-
-Example permission representation:
+Executable runs with the effective UID of the file owner.
 
 ```text
 -rwsr-xr-x
@@ -441,9 +194,7 @@ Example permission representation:
 
 ### setgid
 
-On executables, setgid can provide the effective group of the file.
-
-On directories, setgid causes newly created files/directories to inherit the directory's group.
+On directories, new files/directories inherit the directory's group:
 
 ```bash
 chmod g+s /shared
@@ -451,27 +202,17 @@ chmod g+s /shared
 
 ### Sticky bit
 
-Commonly used on shared directories such as `/tmp`.
+Common on shared directories such as `/tmp`:
 
 ```bash
 chmod +t /shared
 ```
 
-It prevents users from deleting/renaming files they do not own in a sticky directory, subject to privileged-user rules.
+It restricts deletion/renaming of files owned by other users in the directory.
 
----
+## 9. sudo
 
-## 10. sudo basics
-
-### sudo command anatomy
-
-| Part | Meaning |
-|---|---|
-| `sudo` | run a command with elevated privileges if authorized |
-| `-u user` | run the command as the specified user |
-| `-l` | list the current user's sudo privileges |
-
-Examples:
+`s‍udo` allows an authorized user to run commands with another user's privileges, commonly root.
 
 ```bash
 sudo systemctl restart nginx
@@ -479,112 +220,39 @@ sudo -u appuser whoami
 sudo -l
 ```
 
-Read them as:
+Important meanings:
 
-- `sudo systemctl restart nginx` → run the restart command with elevated privileges.
-- `sudo -u appuser whoami` → run `whoami` as `appuser`.
-- `sudo -l` → list what the current user is allowed to run through sudo.
+- `sudo` = privilege escalation for an authorized command
+- `-u user` = run as specified user
+- `-l` = list current sudo privileges
 
-`sudo` allows an authorized user to execute a command with elevated privileges.
-
-Examples:
-
-```bash
-sudo systemctl restart nginx
-sudo -u appuser whoami
-sudo -l
-```
-
-Check the current user's sudo privileges:
-
-```bash
-sudo -l
-```
-
-This is a key troubleshooting command.
-
----
-
-## 11. sudoers configuration
+## 10. sudoers
 
 Main configuration:
 
 ```text
 /etc/sudoers
-```
-
-Additional configuration is commonly stored under:
-
-```text
 /etc/sudoers.d/
 ```
 
-Always validate sudoers changes with:
+Edit safely with:
 
 ```bash
 sudo visudo
-```
-
-For a specific file:
-
-```bash
 sudo visudo -f /etc/sudoers.d/devops
 ```
 
-Do not casually edit `/etc/sudoers` with a normal text editor. A syntax error can break sudo access.
-
-Example policy:
-
-```text
-%devops ALL=(ALL) /usr/bin/systemctl restart nginx
-```
-
-This grants members of the `devops` group permission to run the specified command through sudo.
-
-Avoid broad rules such as:
-
-```text
-%devops ALL=(ALL) NOPASSWD: ALL
-```
-
-unless there is a deliberate, controlled requirement.
-
----
-
-## 12. sudo troubleshooting
-
-### Useful command meanings
-
-| Command | Meaning |
-|---|---|
-| `whoami` | show the current username |
-| `id` | show UID, GID and group membership |
-| `groups` | show groups for the current user |
-| `sudo -l` | list sudo privileges |
-| `sudo visudo -c` | check sudoers syntax |
-| `command -v systemctl` | show the command path that the shell resolves |
-| `namei -l /path` | show permissions/ownership for every component of a path |
-| `getfacl /path` | display ACL entries |
-| `journalctl` | query systemd journal logs |
-| `grep sudo file` | search matching lines containing `sudo` |
-
-### Option meanings
-
-- `-l` in `sudo -l` = **list**.
-- `-u appuser` in `sudo -u appuser command` = run as the specified **user**.
-- `-c` in `visudo -c` = **check** configuration without editing it.
-- `-l` in `namei -l` = show detailed/list-style permission information for each path component.
-- `-u` in `journalctl -u nginx` = filter logs for the specified **systemd unit**.
-
-When:
+Validate without editing:
 
 ```bash
-sudo command
+sudo visudo -c
 ```
 
-fails, check:
+Avoid unnecessarily broad rules such as unrestricted `ALL` access.
 
-### Step 1 — Identity
+## 11. Permission denied troubleshooting
+
+Start with identity:
 
 ```bash
 whoami
@@ -592,28 +260,20 @@ id
 groups
 ```
 
-### Step 2 — Sudo policy
+Check sudo authorization:
 
 ```bash
 sudo -l
-```
-
-### Step 3 — Sudoers syntax
-
-```bash
 sudo visudo -c
 ```
 
-### Step 4 — Command path
+Check command resolution:
 
 ```bash
-which systemctl
 command -v systemctl
 ```
 
-A sudoers rule may allow one exact path while the user is attempting another command/path.
-
-### Step 5 — File permissions
+Check the target and every parent directory:
 
 ```bash
 ls -l /path/to/file
@@ -621,439 +281,42 @@ namei -l /path/to/file
 getfacl /path/to/file
 ```
 
-### Step 6 — Logs
-
-Depending on the distribution:
+Check logs where applicable:
 
 ```bash
-journalctl -u sudo
 journalctl | grep sudo
 grep sudo /var/log/auth.log
 grep sudo /var/log/secure
 ```
 
-Log location differs by Linux distribution and configuration.
+Log locations vary by distribution.
 
----
+## 12. Production failure example
 
-## 13. Realistic production failure scenario
-
-### Scenario
-
-A deployment service runs as:
-
-```text
-appuser
-```
-
-The deployment suddenly fails:
+An application runs as `appuser` and fails with:
 
 ```text
 Permission denied: /opt/myapp/config/application.yml
 ```
 
-### Investigation
-
-First identify the service user:
+Investigate:
 
 ```bash
 ps -ef | grep myapp
 id appuser
-```
-
-Check the file:
-
-```bash
 ls -l /opt/myapp/config/application.yml
-```
-
-Then inspect every directory in the path:
-
-```bash
 namei -l /opt/myapp/config/application.yml
-```
-
-Check ACLs:
-
-```bash
 getfacl /opt/myapp/config/application.yml
 ```
 
-### Possible root cause
+A common root cause is missing traverse permission on `/opt/myapp/config` even though the file itself looks correct.
 
-A deployment engineer changed:
-
-```text
-/opt/myapp/config
-```
-
-from:
-
-```text
-drwxr-x---
-```
-
-to:
-
-```text
-drwx------
-```
-
-The file itself still looks correct, but `appuser` can no longer traverse the parent directory.
-
-### Safe fix
-
-Restore the required group/traverse permission instead of using `777`:
+Fix the intended access model rather than using `777`, then verify as the application user:
 
 ```bash
-sudo chmod 750 /opt/myapp/config
-sudo chgrp appgroup /opt/myapp/config
+sudo -u appuser test -r /opt/myapp/config/application.yml
 ```
 
-Then verify as the application user:
+## 13. DevOps/AWS relevance
 
-```bash
-sudo -u appuser test -r /opt/myapp/config/application.yml && echo "readable"
-```
-
-Finally restart/retry the deployment and verify logs.
-
-### Production lesson
-
-Do not start with:
-
-```bash
-chmod 777
-```
-
-Start by identifying **which identity needs which access to which path**.
-
----
-
-## 14. Linux permissions vs AWS permissions
-
-These are different layers.
-
-### Linux permissions
-
-Control access inside the operating system:
-
-```text
-user → file/directory → Linux permissions/ACLs
-```
-
-Typical commands:
-
-```bash
-chmod
-chown
-chgrp
-getfacl
-setfacl
-sudo
-```
-
-### AWS IAM
-
-Controls access to AWS APIs/resources:
-
-```text
-IAM principal → IAM policy → AWS API/resource
-```
-
-For example, an EC2 instance may have Linux permission to read a local file but still receive:
-
-```text
-AccessDenied
-```
-
-when the application attempts to read an S3 object.
-
-That is an **AWS IAM/resource-policy issue**, not a Linux file-permission issue.
-
-Conversely, an EC2 instance may have an IAM role allowing S3 access but the application can still fail before making the AWS API call because the local credential/configuration file is not readable.
-
----
-
-## 15. AWS troubleshooting connection
-
-For an EC2 application that cannot read S3, separate the problem into layers:
-
-1. **Linux identity**
-   ```bash
-   id
-   ps -ef
-   ```
-
-2. **Local file permissions**
-   ```bash
-   ls -l ~/.aws/
-   getfacl ~/.aws/config
-   ```
-
-3. **Credential source / IAM role**
-   Check the EC2 instance profile and application credential configuration.
-
-4. **IAM policy**
-   Verify the required action such as `s3:GetObject`.
-
-5. **S3 bucket/object policy**
-   Check resource-based restrictions.
-
-6. **Network path**
-   If the application cannot reach the required AWS endpoint, investigate DNS, routing, security groups, NACLs, proxy/VPC endpoint configuration, and related connectivity.
-
-This layered approach prevents mixing Linux `Permission denied` with AWS `AccessDenied`.
-
----
-
-## 16. Command cheat sheet
-
-| Goal | Command |
-|---|---|
-| View permissions | `ls -l file` |
-| Detailed metadata | `stat file` |
-| Change permissions | `chmod 640 file` |
-| Change owner | `chown user file` |
-| Change owner/group | `chown user:group file` |
-| Change group | `chgrp group file` |
-| Show identity | `id` |
-| Show path permissions | `namei -l /path/to/file` |
-| View ACL | `getfacl file` |
-| Add ACL | `setfacl -m u:user:rwx file` |
-| Remove ACL | `setfacl -x u:user file` |
-| Remove extended ACLs | `setfacl -b file` |
-| Check sudo privileges | `sudo -l` |
-| Validate sudoers | `sudo visudo -c` |
-| Safely edit sudoers | `sudo visudo` |
-| Run as another user | `sudo -u user command` |
-| Find command path | `command -v command` |
-| Check sudo logs | `journalctl | grep sudo` |
-
----
-
-## 17. Practical lab
-
-### Lab 1 — Basic permissions
-
-```bash
-mkdir -p ~/permissions-lab
-cd ~/permissions-lab
-echo "secret" > secret.txt
-chmod 600 secret.txt
-ls -l secret.txt
-```
-
-Create a test user if your lab environment permits it, then verify that the user cannot read the file.
-
-### Lab 2 — Ownership
-
-```bash
-sudo chown root:root secret.txt
-ls -l secret.txt
-```
-
-Test access with different users.
-
-### Lab 3 — ACL
-
-```bash
-sudo setfacl -m u:$(whoami):rw secret.txt
-getfacl secret.txt
-```
-
-Observe the ACL entry and mask.
-
-### Lab 4 — Path traversal
-
-```bash
-mkdir -p ~/permissions-lab/private/data
-chmod 700 ~/permissions-lab/private
-namei -l ~/permissions-lab/private/data
-```
-
-Understand why permissions on parent directories matter.
-
-### Lab 5 — sudo
-
-```bash
-sudo -l
-sudo -u root whoami
-sudo visudo -c
-```
-
-Do not modify production sudoers rules during practice.
-
----
-
-# Interview Questions
-
-<details>
-<summary>1. What are Linux file permissions?</summary>
-
-Linux file permissions control read, write, and execute access for the file owner, owning group, and others.
-</details>
-
-<details>
-<summary>2. What does 755 mean?</summary>
-
-Owner has `rwx`; group has `r-x`; others have `r-x`.
-</details>
-
-<details>
-<summary>3. What is the difference between file and directory execute permission?</summary>
-
-For a file, execute allows execution. For a directory, execute allows traversal/access to entries inside it.
-</details>
-
-<details>
-<summary>4. What is the difference between chmod and chown?</summary>
-
-`chmod` changes permissions; `chown` changes ownership.
-</details>
-
-<details>
-<summary>5. How do you troubleshoot Permission denied?</summary>
-
-Check the user with `id`, inspect file and parent-directory permissions with `ls -l` and `namei -l`, check ACLs with `getfacl`, then investigate sudo or application-specific restrictions.
-</details>
-
-<details>
-<summary>6. Why can a user read a file but still get Permission denied?</summary>
-
-A parent directory may not grant the user execute/traverse permission.
-</details>
-
-<details>
-<summary>7. What is an ACL?</summary>
-
-An Access Control List provides additional per-user or per-group permissions beyond the traditional owner/group/other model.
-</details>
-
-<details>
-<summary>8. How do you check ACLs?</summary>
-
-Use `getfacl file`.
-</details>
-
-<details>
-<summary>9. How do you grant a specific user access using ACL?</summary>
-
-Use a command such as `setfacl -m u:alice:rw file`.
-</details>
-
-<details>
-<summary>10. What is the ACL mask?</summary>
-
-The ACL mask limits the effective permissions of named users, named groups, and the owning group in an extended ACL.
-</details>
-
-<details>
-<summary>11. What is setgid on a directory?</summary>
-
-It causes newly created files and directories under that directory to inherit the directory's group.
-</details>
-
-<details>
-<summary>12. What is the sticky bit?</summary>
-
-On a shared directory, it restricts file deletion/renaming so users generally can modify only entries they own, even when the directory is writable by multiple users.
-</details>
-
-<details>
-<summary>13. What is sudo?</summary>
-
-`sudo` provides controlled privilege escalation for authorized users.
-</details>
-
-<details>
-<summary>14. How do you check what a user can run with sudo?</summary>
-
-Use `sudo -l`.
-</details>
-
-<details>
-<summary>15. Why should visudo be used?</summary>
-
-`visudo` validates sudoers syntax and helps prevent locking administrators out because of a configuration syntax error.
-</details>
-
-<details>
-<summary>16. Where are sudo rules commonly configured?</summary>
-
-The main file is `/etc/sudoers`, with additional rules commonly placed in `/etc/sudoers.d/`.
-</details>
-
-<details>
-<summary>17. What is the danger of chmod 777?</summary>
-
-It grants read/write/execute permissions broadly and can create security and operational risks. It should not be used as a generic fix for Permission denied.
-</details>
-
-<details>
-<summary>18. How would you troubleshoot an application that cannot read a configuration file?</summary>
-
-Identify the process user, inspect the file and all parent directories, check ACLs, verify ownership, test access as the service user, and inspect application/system logs.
-</details>
-
-<details>
-<summary>19. What is the difference between Linux Permission denied and AWS AccessDenied?</summary>
-
-Linux Permission denied generally indicates an OS-level access-control failure. AWS AccessDenied generally indicates an AWS authorization failure involving IAM or resource policies. Both layers can affect the same application.
-</details>
-
-<details>
-<summary>20. An EC2 application has s3:GetObject permission but still cannot read its local credentials/config file. What is wrong?</summary>
-
-The AWS IAM permission may be correct, but Linux ownership, mode bits, ACLs, or path traversal permissions can prevent the application from reading its local configuration. Troubleshoot the OS layer before assuming IAM is the problem.
-</details>
-
----
-
-## Production mental model
-
-When you see:
-
-```text
-Permission denied
-```
-
-think in this order:
-
-```text
-Who am I?
-   ↓
-Which process/user is actually accessing it?
-   ↓
-Can I traverse every parent directory?
-   ↓
-Who owns the file?
-   ↓
-What do mode bits allow?
-   ↓
-Are ACLs changing effective permissions?
-   ↓
-Do I need sudo?
-   ↓
-Does sudo actually authorize this exact command?
-   ↓
-Are there additional controls such as SELinux/AppArmor?
-```
-
-For AWS-backed applications:
-
-```text
-Linux authorization
-        ↓
-Application credentials
-        ↓
-IAM identity policy
-        ↓
-Resource policy
-        ↓
-Network/connectivity
-        ↓
-AWS service
-```
-
-The key DevOps skill is to identify **which authorization layer is actually failing** instead of changing permissions blindly.
+Linux permissions affect EC2 services, deployment users, SSH keys, application directories, Jenkins agents and systemd services. AWS IAM controls AWS API authorization separately; a deployment can be blocked by either AWS authorization or Linux authorization, so identify the failing layer before changing access.
