@@ -543,6 +543,172 @@ Then compare the design with an AWS-managed scheduler approach.
 
 ---
 
+## 📅 DAY 10 — SSH: Keys, Agent, Tunneling & Common Failures
+
+### Lab 1 — Create and inspect an SSH key
+
+```bash
+mkdir -p ~/linux-labs/ssh
+chmod 700 ~/linux-labs/ssh
+ssh-keygen -t ed25519 -f ~/linux-labs/ssh/lab_key -C "ssh-lab"
+ls -l ~/linux-labs/ssh
+chmod 600 ~/linux-labs/ssh/lab_key
+```
+
+**Tasks:**
+- Identify the private and public key.
+- Explain why the private key must remain secret.
+- Explain `-t`, `-f` and `-C`.
+- Explain why `600` is used for the private key.
+
+### Lab 2 — ssh-agent
+
+```bash
+eval "$(ssh-agent -s)"
+ssh-add ~/linux-labs/ssh/lab_key
+ssh-add -l
+ssh-add -L
+ssh-add -D
+ssh-add -l
+```
+
+**Tasks:**
+- Explain every command and flag.
+- Explain why an agent is useful.
+- Explain the security risk of agent forwarding.
+
+### Lab 3 — SSH verbose troubleshooting
+
+```bash
+ssh -vvv user@<test-host>
+```
+
+Record:
+- Destination
+- Username
+- Keys offered
+- Authentication method
+- Exact final error
+
+Classify the failure as network, service, authentication or configuration.
+
+### Lab 4 — ProxyJump / bastion
+
+On a disposable environment with a bastion and private host:
+
+```bash
+ssh -J user@bastion user@private-host
+```
+
+Then create a client alias:
+
+```sshconfig
+Host private-host
+    HostName <private-ip>
+    User <user>
+    ProxyJump <user>@<bastion>
+```
+
+Test:
+
+```bash
+ssh private-host
+```
+
+Explain the difference between ProxyJump and agent forwarding.
+
+### Lab 5 — Local SSH tunnel
+
+If the SSH server can reach an internal HTTP service:
+
+```bash
+ssh -L 8080:<internal-host>:80 user@<test-host>
+```
+
+From the client:
+
+```bash
+curl http://localhost:8080
+```
+
+Then verify reachability from the SSH server:
+
+```bash
+nc -vz <internal-host> 80
+```
+
+Explain why the destination must be reachable from the SSH server side.
+
+### Lab 6 — SSH failure injection
+
+Introduce one safe failure at a time:
+
+1. Wrong username.
+2. Wrong private key.
+3. Private key permission `644`.
+4. Unreachable TCP/22.
+5. Destination service not listening for a tunnel.
+6. Agent loaded with multiple unrelated keys.
+
+Useful commands:
+
+```bash
+ssh -vvv user@host
+ssh-add -l
+ssh -o IdentitiesOnly=yes -i <key> user@host
+nc -vz host 22
+ss -lntp
+```
+
+For every failure document:
+
+```text
+Observed error:
+Layer that failed:
+Evidence:
+Root cause:
+Fix:
+Prevention:
+```
+
+### Lab 7 — Production-style SSH incident
+
+Scenario:
+
+```text
+Laptop → Bastion → Private EC2
+
+Bastion SSH works.
+Private EC2 SSH times out.
+```
+
+Investigate in this order:
+
+```bash
+nc -vz <private-ip> 22
+```
+
+Then, if you have an alternate access path:
+
+```bash
+sudo ss -lntp | grep ':22'
+sudo systemctl status sshd
+sudo journalctl -u sshd -n 100 --no-pager
+```
+
+Inspect AWS network controls conceptually:
+
+```text
+Bastion SG: TCP 22 from trusted admin source
+Private SG: TCP 22 from Bastion SG
+Route table: private subnet route is valid
+NACL/firewall: traffic is permitted
+```
+
+**Success criteria:** prove whether the failure is network reachability, SSH listener, authentication, authorization or configuration before making a change.
+
+---
+
 # 🎯 Final Capstone — Production Scheduling Incident
 
 ### Scenario
@@ -614,6 +780,7 @@ and identify exactly which layer failed.
 - [ ] DAY 7 — Bash scripting
 - [ ] DAY 8 — Bash error handling/traps
 - [ ] DAY 9 — Cron & systemd timers
+- [ ] DAY 10 — SSH keys, agent, tunneling & failures
 - [ ] Capstone — Production scheduling incident
 
-> **Future rule:** Every new Linux DAY will add its practical labs to this centralized workbook while keeping a short practical-lab section inside the DAY file itself.
+> **Future rule:** Every new Linux DAY will add its practical labs to this centralized workbook. No separate per-day LABS file will be created.
