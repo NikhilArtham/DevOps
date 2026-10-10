@@ -1,235 +1,343 @@
-# DAY 6 - grep, sed, awk, sort & xargs for Production Debugging
+# DAY 6 - grep, sed, awk, sort & xargs
 
-## 1. Mental model
+> **Goal:** Learn five Linux commands that help you search, transform, analyze and process text. These are extremely useful for logs and production troubleshooting.
 
-Production debugging often turns noisy text into useful evidence:
+## 1. Why text-processing commands matter
+
+Production systems generate lots of text:
 
 ```text
-logs/output → grep → sed → awk → sort → xargs
+application logs
+system logs
+configuration files
+CSV/text output
+command output
 ```
 
-The commands become powerful when combined with pipes, but understand the input format before building a pipeline.
+Instead of reading thousands of lines manually, Linux gives us small tools that can be combined.
 
-## 2. grep — find matching text
+Think:
+
+```text
+Large output
+   ↓
+grep → find what matters
+   ↓
+sed → change/remove text
+   ↓
+awk → extract fields/calculate
+   ↓
+sort → organize results
+   ↓
+xargs → use results as command arguments
+```
+
+## 2. grep = find text
+
+`grep` searches input for matching text.
 
 ```bash
 grep "ERROR" app.log
-grep -i "error" app.log
-grep -n "ERROR" app.log
-grep -v "INFO" app.log
-grep -c "ERROR" app.log
-grep -w "failed" app.log
-grep -C 3 "OutOfMemory" app.log
-grep -rni "connection refused" /var/log/myapp/
-grep -Ei "error|failed|timeout" app.log
 ```
 
-Important flags:
+Case-insensitive:
+
+```bash
+grep -i "error" app.log
+```
+
+Useful options:
 
 - `-i` = ignore case
-- `-v` = invert match
-- `-n` = line numbers
-- `-r`/`-R` = recursive search (`-R` follows symlinks)
-- `-l` = filenames with matches
-- `-L` = filenames without matches
-- `-c` = count matches
+- `-n` = show line number
+- `-v` = show lines that do NOT match
+- `-r` = search directories recursively
 - `-E` = extended regular expressions
-- `-w` = whole word
-- `-A N` = N lines after
-- `-B N` = N lines before
-- `-C N` = N lines around
 
-## 3. sed — stream editor
-
-`sed` processes text line by line for substitution, selection and deletion.
+Example:
 
 ```bash
-echo "ERROR old-server" | sed 's/old-server/new-server/'
-sed 's/old-server/new-server/g' app.log
-sed -n '10,20p' app.log
-sed '5d' app.log
+grep -in "timeout" app.log
 ```
 
-An expression such as `s/old/new/g` means:
+## 3. sed = change text
 
-- `s` = substitute
-- `old` = search text
-- `new` = replacement
-- `g` = all matches on each line
+`sed` is a stream editor. It is commonly used to replace or delete text.
 
-Important flags:
-
-- `-n` = suppress automatic printing
-- `-e` = expression
-- `-i` = edit file in place
-
-During production incidents, prefer non-destructive output first. `sed -i` changes the actual file.
-
-## 4. awk — fields, filters and calculations
-
-`awk` is excellent for structured text.
+Replace first matching text on each line:
 
 ```bash
-awk '{print $1}' app.log
-awk '{print $1, $2, $8}' data.txt
-awk -F: '{print $1, $7}' /etc/passwd
-awk '$3 > 80 {print $0}' metrics.txt
-awk '{sum += $5} END {print sum}' access.log
+sed 's/old/new/' file.txt
 ```
 
-Important concepts:
+Replace all matches on each line:
 
-- `$0` = entire current line
-- `$1`, `$2`, ... = fields
-- `-F` = field separator
-- `BEGIN` = before input processing
-- `END` = after input processing
-- `~` = matches regex
-- `!~` = does not match regex
+```bash
+sed 's/old/new/g' file.txt
+```
+
+Useful idea:
+
+```text
+s = substitute
+old = text to find
+new = replacement
+g = all matches on each line
+```
+
+Delete lines containing a pattern:
+
+```bash
+sed '/DEBUG/d' app.log
+```
+
+`d` = delete the matching line.
+
+## 4. awk = work with columns
+
+`awk` is especially useful when output has fields/columns.
+
+Example:
+
+```text
+nginx 200 /login
+nginx 500 /payment
+```
+
+Print the first field:
+
+```bash
+awk '{print $1}' file.txt
+```
+
+Print first and third fields:
+
+```bash
+awk '{print $1, $3}' file.txt
+```
+
+Important variables:
+
+- `$1` = first field
+- `$2` = second field
 - `$NF` = last field
+- `NF` = number of fields
+- `NR` = current record/line number
 
-## 5. sort
+## 5. awk with a delimiter
+
+For CSV-like data:
 
 ```bash
-sort numbers.txt
-sort -nr numbers.txt
-du -h /var/log/* 2>/dev/null | sort -hr
-sort -k2 data.txt
+awk -F',' '{print $1, $3}' users.csv
 ```
 
-Flags:
+`-F','` tells awk that comma is the field separator.
 
-- `-r` = reverse
-- `-n` = numeric
-- `-h` = human-readable numeric
-- `-k` = sort by field/key
-- `-t` = delimiter
-- `-u` = unique output
-- `-o` = output file
+## 6. awk calculations
 
-## 6. xargs
+Suppose a log contains:
 
-`xargs` converts standard input into command arguments.
+```text
+GET / 120
+GET /login 250
+GET /api 800
+```
+
+Find requests slower than 500 ms:
+
+```bash
+awk '$3 > 500 {print $0}' access.log
+```
+
+`$3 > 500` is the condition.
+
+## 7. sort = arrange output
+
+```bash
+sort file.txt
+```
+
+Numerical sorting:
+
+```bash
+sort -n numbers.txt
+```
+
+Reverse order:
+
+```bash
+sort -r file.txt
+```
+
+Combine options:
+
+```bash
+sort -nr numbers.txt
+```
+
+For human-readable sizes:
+
+```bash
+sort -hr
+```
+
+## 8. xargs = turn input into arguments
+
+Suppose:
 
 ```bash
 printf '%s\n' file1 file2 file3 | xargs ls -l
-printf '%s\n' app1 app2 app3 | xargs -n 1 systemctl status
 ```
 
-Important flags:
+`xargs` takes input and builds command arguments from it.
 
-- `-n N` = max N input items per command
-- `-I {}` = replace placeholder with each input item
-- `-0` = read NUL-separated input
-- `-r` = do not run command when there is no input on GNU xargs
-- `-P N` = parallel execution; use carefully
-
-Safer filename handling:
+A common use:
 
 ```bash
-find /var/log -type f -print0 | xargs -0 ls -lh
+find /tmp -name '*.log' -print0 | xargs -0 rm
 ```
 
-Never blindly pipe arbitrary output into destructive commands such as `rm`.
+Why `-print0` and `-0`?
 
-## 7. High-value pipelines
+They safely handle filenames containing spaces and unusual characters.
 
-Count HTTP status codes:
+## 9. Pipelines
+
+A pipe `|` sends the output of one command into another command.
+
+Example:
+
+```bash
+ps aux | grep nginx
+```
+
+Meaning:
+
+```text
+ps aux
+  ↓ output
+ grep nginx
+```
+
+The power comes from combining simple tools.
+
+## 10. Production example: find HTTP 500 errors
+
+```bash
+grep ' 500 ' access.log
+```
+
+Count status codes:
 
 ```bash
 awk '{print $9}' access.log | sort | uniq -c | sort -nr
 ```
 
-Find top client IPs:
+The exact field number depends on the log format, so always inspect a sample line first.
+
+## 11. Production example: find slow requests
+
+If response time is field 10:
 
 ```bash
-awk '{print $1}' access.log | sort | uniq -c | sort -nr | head
+awk '$10 > 1000 {print $0}' access.log
 ```
 
-Find context around errors:
+Then sort by that field:
 
 ```bash
-grep -n -C 5 "ERROR" app.log
+awk '$10 > 1000 {print $0}' access.log | sort -k10 -nr
 ```
 
-Find largest logs:
+`-k10` tells `sort` to sort using field 10.
+
+## 12. Production troubleshooting mindset
+
+Do not blindly paste pipelines.
+
+Build them one command at a time:
 
 ```bash
-du -h /var/log/* 2>/dev/null | sort -hr | head -20
+cat access.log | head
 ```
 
-Find unique failed users:
+then:
 
 ```bash
-grep "authentication failed" auth.log | awk '{print $NF}' | sort -u
+grep ' 500 ' access.log
 ```
 
-## 8. Realistic API incident
+then:
 
-For an API with rising HTTP 500s:
+```bash
+grep ' 500 ' access.log | awk '{print $7}'
+```
 
-```text
-user complaint
- ↓
-count status codes
- ↓
-find failing endpoint
- ↓
-find affected source/IP
- ↓
-correlate application logs
- ↓
-identify dependency error
- ↓
-verify dependency/network state
+then sort/count the result.
+
+This makes debugging much easier.
+
+## 13. AWS and Kubernetes connection
+
+These commands are useful with output from:
+
+```bash
+aws ...
+kubectl logs ...
+docker logs ...
+journalctl ...
 ```
 
 Example:
 
 ```bash
-awk '{print $9}' access.log | sort | uniq -c | sort -nr
-grep '" 500 ' access.log | awk '{print $7}' | sort | uniq -c | sort -nr
-grep '" 500 ' access.log | awk '{print $1}' | sort | uniq -c | sort -nr | head
-journalctl -u myapp --since '09:05' --until '09:15' --no-pager | grep -Ei 'error|timeout|database|exception'
-```
-
-If logs show database timeouts, verify the database/network rather than blindly restarting the application.
-
-## 9. Production-safe habits
-
-- Inspect output before destructive actions.
-- Prefer non-destructive `sed` output before `sed -i`.
-- Quote shell variables.
-- Understand delimiters before using `awk`/`sort`.
-- Preserve logs as evidence.
-- Use `find -print0 | xargs -0` for arbitrary filenames.
-- Be cautious with `xargs -P` in production.
-
-## 10. AWS and Kubernetes connection
-
-On EC2, use these tools with application logs, deployment logs and CloudWatch/CloudTrail evidence.
-
-Kubernetes examples:
-
-```bash
 kubectl logs deployment/myapp | grep -i error
-kubectl logs pod/myapp-abc123 --since=30m | grep -Ei 'error|timeout|failed'
-kubectl logs pod/myapp-abc123 | grep -i timeout | awk '{print $1}' | sort | uniq -c | sort -nr
 ```
 
-Remember that `kubectl logs` retrieves container logs; the underlying collection/storage architecture depends on the cluster.
-
-## Command cheat sheet
+Or:
 
 ```bash
-grep -in "pattern" file
-grep -Ei "error|failed|timeout" file
-grep -n -C 3 "ERROR" file
-sed -n '10,20p' file
-sed 's/old/new/g' file
-awk '{print $1}' file
-awk -F: '{print $1,$7}' /etc/passwd
-sort -nr file
-du -h /var/log/* 2>/dev/null | sort -hr
-find . -print0 | xargs -0 ls -lh
+journalctl -u myapp --since "30 min ago" | grep -i timeout
 ```
+
+## 14. Common mistakes
+
+### Assuming awk field numbers
+
+Different log formats have different fields.
+
+### Forgetting case sensitivity
+
+Use `grep -i` when appropriate.
+
+### Unsafe `xargs`
+
+Use null-delimited input (`-print0 | xargs -0`) when filenames may contain spaces.
+
+### Editing production files blindly with sed
+
+First preview the result without `-i`. Only edit in place after validating the change.
+
+## 15. Commands to remember
+
+```bash
+grep -in "error" app.log
+sed 's/old/new/g' file.txt
+awk '{print $1}' file.txt
+awk -F',' '{print $1}' file.csv
+sort -nr numbers.txt
+find /tmp -type f -print0 | xargs -0 ls -l
+```
+
+### Beginner takeaway
+
+Remember the jobs:
+
+- **grep** → find
+- **sed** → change text
+- **awk** → understand fields/data
+- **sort** → arrange
+- **xargs** → turn input into command arguments
+
+> Labs and interview questions are maintained centrally in `linux/LABS.md` and `linux/INTERVIEW QUESTIONS.md`.
