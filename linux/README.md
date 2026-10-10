@@ -10,7 +10,7 @@ All Linux interview questions from every DAY are maintained in one centralized, 
 [Open Linux Interview Questions](./INTERVIEW%20QUESTIONS.md)
 
 ### 🧪 Practical Lab Workbook
-All hands-on labs and practical exercises from every DAY are maintained in one centralized workbook so you can practice everything from one place.
+All hands-on labs and practical exercises from every DAY are maintained in one centralized workbook so all practice is available in one place.
 
 [Open Linux Practical Labs](./LABS.md)
 
@@ -19,140 +19,84 @@ All hands-on labs and practical exercises from every DAY are maintained in one c
 ## Study Progress
 
 ### DAY 1 — Process Management
-- Process basics
-- PID / PPID
-- ps, pgrep, pstree
-- Process states
-- top / htop
-- Signals and kill
-- Zombie processes
-- High CPU troubleshooting
-- Interview questions + practical troubleshooting
+- Process basics, PID / PPID, ps, pgrep, pstree
+- Process states, top / htop, signals, kill
+- Zombie processes and high-CPU troubleshooting
 
 [Open DAY 1 notes](./DAY%201%20-%20process-management.md)
 
 ### DAY 2 — Filesystems & Disk Troubleshooting
 - Filesystems, mounts and mount points
 - df, du, lsblk, mount, findmnt
-- Inode exhaustion
-- Large-file investigation
-- Deleted-but-open files
-- Production disk troubleshooting
-- Interview questions + practical labs
+- Inode exhaustion, large-file investigation
+- Deleted-but-open files and production disk troubleshooting
 
 [Open DAY 2 notes](./DAY%202%20-%20filesystems-disks.md)
 
 ### DAY 3 — Permissions, Ownership, ACLs & sudo Troubleshooting
-- Linux permissions and numeric modes
-- chmod, chown, chgrp
-- Parent-directory traversal with namei
+- chmod, chown, chgrp, namei
 - ACLs with getfacl / setfacl
-- ACL mask and default ACLs
-- setuid, setgid and sticky bit
-- sudo, sudoers, visudo, sudo -l
-- Production Permission denied troubleshooting
-- Linux vs AWS authorization layers
-- Command/flag meanings
-- Interview questions + practical labs
+- setuid, setgid, sticky bit
+- sudo, sudoers, visudo and Permission denied troubleshooting
 
 [Open DAY 3 notes](./DAY%203%20-%20permissions-ownership-acl-sudo.md)
 
 ### DAY 4 — systemd Services, Dependencies & Restart Behavior
-- systemctl status/start/stop/restart/enable
-- Active vs enabled
-- systemd unit structure
+- systemctl lifecycle and active vs enabled
 - Requires, Wants, After and Before
-- Restart policies and restart limits
-- journalctl troubleshooting
-- daemon-reload
+- Restart policies, daemon-reload
 - Troubleshooting services that start and immediately exit
-- EC2/systemd production connection
-- Interview questions + practical lab
 
 [Open DAY 4 notes](./DAY%204%20-%20systemd-services.md)
 
 ### DAY 5 — journalctl & Log-Driven Troubleshooting
-- systemd-journald and journalctl
-- journalctl command/flag meanings
-- Service, boot, time and priority filtering
-- Real-time log monitoring
-- Progressive log narrowing
-- Log-driven root-cause troubleshooting
-- Realistic application/database failure scenario
-- Journal persistence and disk usage
-- AWS/EC2 log troubleshooting connection
-- Practical failure lab
-- Interview questions + production mental model
+- journalctl filters, service/boot/time/priority filtering
+- Progressive log narrowing and root-cause troubleshooting
+- Journal persistence/disk usage and AWS/EC2 connection
 
 [Open DAY 5 notes](./DAY%205%20-%20journalctl-log-troubleshooting.md)
 
-### DAY 6 — grep, sed, awk, sort & xargs for Production Debugging
-- grep search and filtering
-- sed text transformation
-- awk field extraction and calculations
-- sort numeric/human-readable ordering
-- xargs command argument construction
-- Command/flag meanings and command anatomy
-- Production-safe pipelines
-- Log analysis with combined shell commands
-- Realistic API 500/latency troubleshooting scenario
+### DAY 6 — grep, sed, awk, sort & xargs
+- Production log filtering and transformation
+- Field extraction, sorting and argument construction
 - AWS/EC2 and Kubernetes log-debugging connection
-- Practical debugging lab
-- Interview questions + production mental model
 
 [Open DAY 6 notes](./DAY%206%20-%20grep-sed-awk-sort-xargs.md)
 
-### DAY 7 — Bash Scripting: Variables, Loops, Functions & Exit Codes
-- Bash scripts and shebangs
-- Variables, quoting and command substitution
-- Environment variables and script arguments
-- if conditions and file/string tests
-- for/while loops, break and continue
-- Functions, local variables, return vs exit
-- Exit codes and CI/CD failure handling
-- &&, || and ; command chaining
-- set -euo pipefail
-- Bash syntax checking and tracing
-- Realistic deployment-script failure scenario
-- AWS CLI and Kubernetes scripting connection
-- Practical health-check lab
-- Interview questions + production mental model
+### DAY 7 — Bash Scripting
+- Variables, arguments, conditions, loops and functions
+- Exit codes, command chaining, set -euo pipefail
+- AWS CLI/Kubernetes scripting and deployment failure troubleshooting
 
 [Open DAY 7 notes](./DAY%207%20-%20bash-scripting.md)
 
 ### DAY 8 — Bash Error Handling, Traps & Safe Automation
-- Explicit error handling and accurate exit codes
-- set -euo pipefail limitations
-- trap, EXIT, ERR and signal handling
-- Cleanup and graceful shutdown
-- Temporary files/directories with mktemp
-- flock and duplicate-job prevention
-- Input validation and safe command construction
-- Realistic failed deployment + cleanup scenario
-- AWS CLI and Kubernetes automation safety
-- Practical trap/error-handling lab
-- Interview questions + production mental model
+- trap, cleanup, signal handling and explicit error handling
+- mktemp, flock, safe command construction
+- AWS CLI/Kubernetes automation safety
 
 [Open DAY 8 notes](./DAY%208%20-%20bash-error-handling-traps.md)
 
 ### DAY 9 — Cron, systemd Timers & Scheduled Automation
-- Cron and crontab
-- Cron expression fields and operators
-- User vs system cron
-- Cron environment/PATH troubleshooting
-- Cron logging and failed-job investigation
-- systemd `.service` + `.timer` architecture
-- OnCalendar, OnBootSec and interval timers
-- Persistent timers
-- systemctl list-timers / status / daemon-reload
-- journalctl troubleshooting for scheduled services
-- Timer vs service failure diagnosis
+- Cron/crontab and scheduler environment
+- systemd `.service` + `.timer`
+- OnCalendar, OnBootSec, OnUnitActiveSec and Persistent
+- Timer vs service troubleshooting
 - EC2 scheduled automation and AWS integration
-- AWS-native scheduling comparison
-- Practical scheduling incident
-- Interview questions + production mental model
 
 [Open DAY 9 notes](./DAY%209%20-%20cron-systemd-timers-scheduled-automation.md)
+
+### DAY 10 — SSH: Keys, Agent, Tunneling & Common Failures
+- SSH public/private keys and permissions
+- ssh-agent, ssh-add and agent forwarding
+- ProxyJump / bastion architecture
+- Local, remote and dynamic SSH tunneling
+- sshd_config, client config and verbose debugging
+- EC2 Security Groups, key pairs and IAM vs SSH
+- Timeout, publickey, agent, host-key and tunnel failures
+- Production SSH troubleshooting mental model
+
+[Open DAY 10 notes](./DAY%2010%20-%20ssh-keys-agent-tunneling-failures.md)
 
 ---
 
@@ -160,16 +104,7 @@ All hands-on labs and practical exercises from every DAY are maintained in one c
 
 [Open the centralized Linux Lab Workbook](./LABS.md)
 
-Use the workbook to repeat every lab from DAY 1 onward and finish the final production-style scheduling capstone.
-
-## Upcoming Topics
-
-- Users and groups
-- Networking commands
-- Memory troubleshooting
-- Shell basics
-
----
+Use the workbook to repeat every lab from DAY 1 onward.
 
 ## 📌 Daily Update Rule
 
@@ -179,5 +114,5 @@ For every new Linux study DAY:
 2. Update this README with the new DAY and link.
 3. Add the new interview questions to the centralized **[Linux Interview Questions](./INTERVIEW%20QUESTIONS.md)** file.
 4. Add the new practical exercises to the centralized **[Linux Practical Labs](./LABS.md)** workbook.
-5. Keep the DAY file's own interview and practical sections as well, so the topic remains self-contained.
+5. Keep the DAY file's own interview and practical sections as well.
 6. Do not create duplicate topic files when an existing canonical file has already been established.
