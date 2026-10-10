@@ -1,6 +1,6 @@
 # Networking Interview Questions
 
-Centralized interview questions for Networking. Questions from every Networking DAY will be added here.
+Centralized interview questions for Networking. Questions from every Networking DAY are added here.
 
 ---
 
@@ -228,5 +228,222 @@ Name → DNS → IP → route → host → port → listener → firewall/securi
 ```
 
 The goal is to identify the **first failed layer** and collect evidence for the root cause.
+
+</details>
+
+---
+
+## DAY 2 — DNS Resolution, `dig`, `nslookup` and Route 53
+
+### 1. What is DNS?
+
+<details>
+<summary>Answer</summary>
+
+DNS (Domain Name System) translates names such as `api.example.com` into information such as IP addresses. It lets applications use stable, human-readable names instead of requiring users and systems to remember IP addresses.
+
+</details>
+
+### 2. What is the difference between a DNS resolver and an authoritative DNS server?
+
+<details>
+<summary>Answer</summary>
+
+A resolver receives a client's DNS query and finds the answer, often using cached data or querying other DNS servers. An authoritative DNS server holds the official DNS records for a zone and provides authoritative answers for that zone.
+
+</details>
+
+### 3. What is an A record?
+
+<details>
+<summary>Answer</summary>
+
+An A record maps a hostname to an IPv4 address. For example, `api.example.com` can have an A record pointing to `203.0.113.10`.
+
+</details>
+
+### 4. What is an AAAA record?
+
+<details>
+<summary>Answer</summary>
+
+An AAAA record maps a hostname to an IPv6 address.
+
+</details>
+
+### 5. What is a CNAME record?
+
+<details>
+<summary>Answer</summary>
+
+A CNAME creates an alias from one DNS name to another DNS name. It points to a name rather than directly to an IP address.
+
+</details>
+
+### 6. What is the difference between `dig` and `nslookup`?
+
+<details>
+<summary>Answer</summary>
+
+Both query DNS. `dig` generally provides richer DNS response details and is widely used for Linux troubleshooting and automation. `nslookup` is still common in existing environments, Windows troubleshooting, and interviews.
+
+</details>
+
+### 7. What does `dig +short example.com` do?
+
+<details>
+<summary>Answer</summary>
+
+It performs a DNS lookup and reduces the output to the short answer, making it convenient when you mainly want the returned address or record value.
+
+</details>
+
+### 8. How do you query a specific DNS resolver using `dig`?
+
+<details>
+<summary>Answer</summary>
+
+Use:
+
+```bash
+dig @8.8.8.8 example.com
+```
+
+The `@8.8.8.8` portion tells `dig` which DNS server to query.
+
+</details>
+
+### 9. What does `dig +trace` do?
+
+<details>
+<summary>Answer</summary>
+
+`dig +trace` follows DNS delegation starting from the root and helps show how the query reaches the authoritative DNS servers. It is useful for investigating delegation and authoritative-resolution problems.
+
+</details>
+
+### 10. What is TTL in DNS?
+
+<details>
+<summary>Answer</summary>
+
+TTL (Time To Live) controls how long a DNS response can normally be cached by a resolver. A cached answer can remain visible until its TTL expires, so DNS changes may not appear everywhere immediately.
+
+</details>
+
+### 11. What is `NXDOMAIN`?
+
+<details>
+<summary>Answer</summary>
+
+`NXDOMAIN` is a DNS response indicating that the queried domain name does not exist according to the responding DNS system. It is different from a server being reachable but having its application down.
+
+</details>
+
+### 12. How do you separate a DNS problem from a connectivity problem?
+
+<details>
+<summary>Answer</summary>
+
+First resolve the name independently:
+
+```bash
+dig +short api.example.com
+```
+
+Then test the returned IP:
+
+```bash
+ip route get <ip>
+nc -vz <ip> <port>
+```
+
+If DNS returns a valid IP but the TCP connection fails, investigate routing, security controls, listeners, and the application rather than treating it as a DNS failure.
+
+</details>
+
+### 13. What is a Route 53 hosted zone?
+
+<details>
+<summary>Answer</summary>
+
+A Route 53 hosted zone is a container for DNS records for a domain or DNS namespace. A public hosted zone is used for publicly resolvable DNS, while a private hosted zone is used for DNS names within associated VPCs.
+
+</details>
+
+### 14. What is the difference between a public and private Route 53 hosted zone?
+
+<details>
+<summary>Answer</summary>
+
+A public hosted zone provides DNS information intended for public DNS resolution. A private hosted zone provides DNS records for associated VPCs and is commonly used for internal service names.
+
+</details>
+
+### 15. What is a Route 53 Alias record?
+
+<details>
+<summary>Answer</summary>
+
+An Alias record is an AWS-specific DNS feature that can point a DNS name to supported AWS resources such as an Application Load Balancer or CloudFront distribution. It is different from a traditional CNAME because it is integrated with supported AWS resources.
+
+</details>
+
+### 16. What Route 53 routing policies should a DevOps engineer know?
+
+<details>
+<summary>Answer</summary>
+
+Know the purpose of simple, weighted, latency-based, failover, geolocation, geoproximity, and multivalue answer routing. The important interview point is understanding why you would choose each policy rather than only memorizing the names.
+
+</details>
+
+### 17. What is weighted routing in Route 53?
+
+<details>
+<summary>Answer</summary>
+
+Weighted routing distributes DNS responses according to configured weights. For example, two versions could be configured approximately as 90% and 10% to support gradual releases or testing.
+
+</details>
+
+### 18. What is latency-based routing in Route 53?
+
+<details>
+<summary>Answer</summary>
+
+Latency-based routing directs users toward the AWS region expected to provide the lowest network latency among the configured resources.
+
+</details>
+
+### 19. What is failover routing in Route 53?
+
+<details>
+<summary>Answer</summary>
+
+Failover routing supports a primary/secondary model. DNS can return the primary resource while it is considered healthy and use the secondary resource when the configured health-check and failover conditions indicate that the primary should not be used.
+
+</details>
+
+### 20. A DNS name resolves successfully but the application is unreachable. What do you check?
+
+<details>
+<summary>Answer</summary>
+
+Treat DNS as a completed layer and continue:
+
+```text
+resolved IP
+→ route
+→ reachability
+→ TCP port
+→ listener
+→ Linux firewall
+→ AWS Security Group
+→ Network ACL / AWS routing
+→ application
+```
+
+Useful commands include `ip route get`, `ping` where appropriate, `nc -vz`, and `ss -lntp`. The key is to identify the first failed layer with evidence.
 
 </details>
