@@ -1,16 +1,30 @@
-# DAY 7 - Bash Scripting: Variables, Loops, Functions & Exit Codes
+# DAY 7 - Bash Scripting Basics
 
-## 1. Why Bash matters in DevOps
+> **Goal:** Learn how to turn Linux commands into reusable automation scripts.
 
-Bash is used for deployments, health checks, backups, cleanup, log collection, CI/CD steps and AWS CLI automation.
+## 1. What is Bash?
 
-```text
-Input → variables → logic → functions/loops → exit code → automation decision
+Bash is a command-line shell commonly available on Linux.
+
+You already use Bash when you type commands such as:
+
+```bash
+ls
+cd /var/log
+systemctl status nginx
 ```
 
-A production script should be predictable, readable, safe and accurate about failures.
+A Bash script is simply a file containing commands that Bash can execute in sequence.
 
-## 2. Script basics
+## 2. Your first script
+
+Create:
+
+```bash
+nano hello.sh
+```
+
+Put this inside:
 
 ```bash
 #!/usr/bin/env bash
@@ -18,300 +32,336 @@ A production script should be predictable, readable, safe and accurate about fai
 echo "Hello DevOps"
 ```
 
-The shebang selects Bash through `env`.
+The first line is called the **shebang**. It tells the operating system which interpreter should run the script.
+
+Run it:
 
 ```bash
-chmod +x script.sh
-./script.sh
-bash script.sh
+bash hello.sh
 ```
 
-- `#!` = interpreter directive
-- `/usr/bin/env` = locate program through `PATH`
-- `bash` = interpreter
-- `chmod +x` = add execute permission
-- `./` = current directory
+Or make it executable:
 
-## 3. Variables and quoting
+```bash
+chmod +x hello.sh
+./hello.sh
+```
+
+## 3. Variables
 
 ```bash
 name="Nikhil"
-environment="production"
-count=5
-
 echo "$name"
 ```
 
-No spaces around `=`.
+Important: do not put spaces around `=`.
+
+Good:
 
 ```bash
-name="Nikhil"   # correct
-name = "Nikhil" # wrong
+name="Nikhil"
 ```
 
-Prefer quoted expansions:
+Bad:
+
+```bash
+name = "Nikhil"
+```
+
+Use quotes around variables when they may contain spaces:
 
 ```bash
 echo "$name"
-rm -- "$file"
 ```
-
-Double quotes expand variables; single quotes prevent expansion.
 
 ## 4. Command substitution
 
-`$(command)` runs the command and substitutes its output:
+You can save command output in a variable:
 
 ```bash
 hostname=$(hostname)
-today=$(date +%F)
-current_user=$(whoami)
-files=$(find /var/log -type f | wc -l)
+echo "Server: $hostname"
 ```
 
-## 5. Environment variables
+`$(...)` means: run the command and use its output.
+
+## 5. Script arguments
+
+If you run:
 
 ```bash
-echo "$PATH"
-echo "$HOME"
-echo "$USER"
-echo "$PWD"
-export APP_ENV=production
-env | grep APP_ENV
+./deploy.sh production v1.2
 ```
 
-`export` makes a variable available to child processes.
+Then:
 
-## 6. Script arguments
+- `$0` = script name
+- `$1` = first argument (`production`)
+- `$2` = second argument (`v1.2`)
+- `$#` = number of arguments
+- `$@` = all arguments
 
-For:
+Example:
 
 ```bash
-./deploy.sh production v1.2.0
+echo "Environment: $1"
+echo "Version: $2"
 ```
 
-| Variable | Meaning |
-|---|---|
-| `$0` | script name/path |
-| `$1` | first argument |
-| `$2` | second argument |
-| `$#` | number of arguments |
-| `$@` | all arguments; use `"$@"` to preserve boundaries |
-| `$?` | previous command's exit status |
-| `$$` | current shell/script PID |
+## 6. Exit codes
 
-## 7. Exit codes
+Every command returns an exit status.
 
 ```text
-0 = success
-non-zero = failure/error
+0     = success
+non-0 = failure
 ```
 
+Check the previous command:
+
 ```bash
-ls /tmp
 echo "$?"
 ```
 
-Critical operations should be checked:
+This is extremely important in automation.
+
+## 7. if statements
 
 ```bash
 if systemctl is-active --quiet nginx; then
-  echo "nginx is running"
+    echo "Nginx is running"
 else
-  echo "nginx is down" >&2
-  exit 1
+    echo "Nginx is not running"
 fi
 ```
 
-Exit codes are how cron, CI/CD and other automation determine success/failure.
+`if` checks the command's exit status.
 
-## 8. Conditions
+## 8. Comparing values
 
 ```bash
 if [[ "$ENV" == "production" ]]; then
-  echo "Production"
-elif [[ "$ENV" == "staging" ]]; then
-  echo "Staging"
-else
-  echo "Unknown environment"
+    echo "Production deployment"
 fi
 ```
 
-Useful Bash tests:
+Common comparisons:
 
 ```bash
-[[ -f "$file" ]]  # file
-[[ -d "$dir" ]]   # directory
-[[ -r "$file" ]]  # readable
-[[ -w "$file" ]]  # writable
-[[ -x "$file" ]]  # executable
-[[ -n "$value" ]] # non-empty
-[[ -z "$value" ]] # empty
-[[ "$a" == "$b" ]]
+[[ "$a" == "$b" ]]   # strings equal
+[[ "$a" != "$b" ]]   # strings different
+[[ -z "$a" ]]         # empty
+[[ -n "$a" ]]         # not empty
+[[ $n -gt 10 ]]        # number greater than 10
 ```
 
 ## 9. Loops
 
+### for loop
+
 ```bash
-for service in nginx docker sshd; do
-  echo "Checking $service"
-  systemctl is-active "$service"
+for server in web1 web2 web3; do
+    echo "Checking $server"
 done
 ```
+
+### while loop
 
 ```bash
 count=1
-while [[ $count -le 5 ]]; do
-  echo "Attempt $count"
-  ((count++))
+while [[ $count -le 3 ]]; do
+    echo "$count"
+    ((count++))
 done
 ```
 
-```bash
-for ((i=1; i<=5; i++)); do
-  echo "$i"
-done
-```
-
-- `break` = exit loop
-- `continue` = skip current iteration
+`break` stops a loop. `continue` skips to the next iteration.
 
 ## 10. Functions
 
+Functions allow you to reuse logic.
+
 ```bash
 check_service() {
-  local service="$1"
-
-  if systemctl is-active --quiet "$service"; then
-    echo "$service is running"
-    return 0
-  else
-    echo "$service is down"
-    return 1
-  fi
+    systemctl is-active --quiet "$1"
 }
 
 check_service nginx
 ```
 
-`local` scopes the variable to the function. `return` exits the function; `exit` terminates the entire script.
-
-## 11. Combining commands
+Use `local` for function variables when appropriate:
 
 ```bash
-mkdir -p /opt/app && echo "ready"
-systemctl is-active --quiet nginx || echo "nginx is down"
-command1; command2
+check_disk() {
+    local usage
+    usage=$(df -P / | awk 'NR==2 {print $5}' | tr -d '%')
+    echo "Disk usage: $usage%"
+}
 ```
 
-- `&&` = next command only after success
-- `||` = next command after failure
-- `;` = run next command regardless of status
+## 11. `return` vs `exit`
 
-## 12. set -euo pipefail
+This is important:
+
+- `return` → leave a function
+- `exit` → terminate the entire script
+
+Example:
+
+```bash
+check() {
+    return 1
+}
+
+if ! check; then
+    echo "Check failed"
+    exit 1
+fi
+```
+
+## 12. `&&`, `||` and `;`
+
+```bash
+command1 && command2
+```
+
+Run command2 only if command1 succeeds.
+
+```bash
+command1 || command2
+```
+
+Run command2 if command1 fails.
+
+```bash
+command1 ; command2
+```
+
+Run command2 regardless of command1's result.
+
+## 13. `set -euo pipefail`
+
+A common safety baseline:
 
 ```bash
 set -euo pipefail
 ```
 
-- `set` = change Bash options
-- `-e` = exit on many unhandled command failures
-- `-u` = unset variables are errors
-- `pipefail` = pipeline status reflects failures from earlier commands
+- `-e` = stop on many unhandled command failures
+- `-u` = treat unset variables as errors
+- `pipefail` = a pipeline can fail if an earlier command fails
 
-For critical operations, explicit checks are still clearer:
+Do not assume this replaces explicit checks for critical operations.
+
+## 14. Debugging a script
+
+Syntax check:
+
+```bash
+bash -n script.sh
+```
+
+Trace commands:
+
+```bash
+bash -x script.sh
+```
+
+`-n` checks syntax without executing the script. `-x` prints commands as Bash executes them.
+
+## 15. Real DevOps example
+
+A deployment script might do:
+
+```text
+Download artifact
+      ↓
+Validate artifact
+      ↓
+Stop service
+      ↓
+Deploy files
+      ↓
+Start service
+      ↓
+Check health
+```
+
+A dangerous script may print `Deployment successful` even if the service restart failed.
+
+A better approach checks every critical operation:
 
 ```bash
 if ! systemctl restart myapp; then
-  echo "ERROR: restart failed" >&2
-  exit 1
+    echo "ERROR: service restart failed" >&2
+    exit 1
 fi
 ```
 
-`set -e` is not a universal exception handler; understand its Bash semantics.
+## 16. AWS / Kubernetes connection
 
-## 13. Debugging Bash
-
-```bash
-bash -n deploy.sh
-bash -x deploy.sh
-```
-
-- `bash -n` = syntax check without executing
-- `bash -x` = execution trace
-
-Send errors to stderr:
+Bash is commonly used to automate:
 
 ```bash
-echo "ERROR: deployment failed" >&2
+aws s3 sync ...
+aws ec2 describe-instances ...
+kubectl rollout status deployment/myapp
 ```
 
-## 14. Production failure example
-
-Bad deployment script:
+Example:
 
 ```bash
-systemctl restart "$APP_SERVICE"
-echo "Deployment successful"
+if ! kubectl rollout status deployment/myapp --timeout=120s; then
+    echo "Rollout failed" >&2
+    exit 1
+fi
 ```
 
-If `systemctl` fails, the script can still print success.
-
-Safer:
+## 17. Beginner script example
 
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_SERVICE="${1:-}"
+SERVICE="${1:-}"
 
-if [[ -z "$APP_SERVICE" ]]; then
-  echo "Usage: $0 <service-name>" >&2
-  exit 2
+if [[ -z "$SERVICE" ]]; then
+    echo "Usage: $0 <service>" >&2
+    exit 2
 fi
 
-if ! systemctl restart "$APP_SERVICE"; then
-  echo "ERROR: failed to restart $APP_SERVICE" >&2
-  exit 1
-fi
-
-echo "Deployment successful"
-```
-
-Validate:
-
-```bash
-bash -n deploy.sh
-bash -x ./deploy.sh myapp
-echo "$?"
-```
-
-The key lesson is that automation must not hide critical failures.
-
-## 15. AWS and Kubernetes connection
-
-Bash commonly wraps AWS CLI:
-
-```bash
-aws ec2 describe-instances --output json
-aws s3 sync ./build "s3://$BUCKET/build/"
-```
-
-Check critical operations:
-
-```bash
-if ! aws s3 sync ./build "s3://$BUCKET/build/"; then
-  echo "ERROR: S3 upload failed" >&2
-  exit 1
+if systemctl is-active --quiet "$SERVICE"; then
+    echo "$SERVICE is running"
+else
+    echo "$SERVICE is NOT running" >&2
+    exit 1
 fi
 ```
 
-Kubernetes scripts may check:
+This script demonstrates arguments, validation, conditionals and exit codes.
 
-```bash
-kubectl get pods
-kubectl logs "$POD"
-kubectl rollout status deployment/myapp
+### Beginner takeaway
+
+A Bash script is just **Linux commands + logic + error handling**.
+
+Learn this order:
+
+```text
+Variables
+   ↓
+Arguments
+   ↓
+Conditions
+   ↓
+Loops
+   ↓
+Functions
+   ↓
+Exit codes
+   ↓
+Error handling
+   ↓
+Automation
 ```
 
-Always check exit codes before declaring success.
+> Labs and interview questions are maintained centrally in `linux/LABS.md` and `linux/INTERVIEW QUESTIONS.md`.
