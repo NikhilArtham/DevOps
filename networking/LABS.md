@@ -1,6 +1,6 @@
 # Networking Labs
 
-Centralized practical labs for Networking. Labs from every Networking DAY will be added here.
+Centralized practical labs for Networking. Labs from every Networking DAY are added here.
 
 ---
 
@@ -209,3 +209,189 @@ Evidence:
 ```
 
 **Success criteria:** You can identify the first failed layer and explain why later layers were or were not investigated.
+
+---
+
+## DAY 2 — DNS Resolution, `dig`, `nslookup` and Route 53
+
+### Lab 1 — Basic DNS Lookup
+
+Run:
+
+```bash
+dig example.com
+dig +short example.com
+nslookup example.com
+```
+
+Identify the returned IP address, query status, and answer section.
+
+**Goal:** Become comfortable with the basic DNS lookup workflow.
+
+---
+
+### Lab 2 — Query Different Record Types
+
+Run:
+
+```bash
+dig A example.com
+dig AAAA example.com
+dig MX example.com
+dig NS example.com
+dig TXT example.com
+```
+
+**Goal:** Understand what different DNS records are used for.
+
+---
+
+### Lab 3 — Compare DNS Resolvers
+
+Run:
+
+```bash
+dig example.com
+dig @8.8.8.8 example.com
+dig @1.1.1.1 example.com
+```
+
+Compare the answers and TTL values.
+
+**Goal:** Understand how to determine whether a problem is specific to a DNS resolver.
+
+---
+
+### Lab 4 — Trace DNS Delegation
+
+Run:
+
+```bash
+dig +trace example.com
+```
+
+Follow the path from root DNS servers to the authoritative servers for the domain.
+
+**Goal:** Understand DNS delegation rather than treating DNS as a single server.
+
+---
+
+### Lab 5 — Separate DNS From Connectivity
+
+Choose a hostname that resolves to an IP and run:
+
+```bash
+dig +short <hostname>
+ip route get <destination-ip>
+ping <destination-ip>
+nc -vz <destination-ip> <port>
+```
+
+Record the result of each stage.
+
+**Goal:** Prove whether a failure is DNS, routing, reachability, or TCP-port related.
+
+---
+
+### Lab 6 — Route 53 Public Hosted Zone Exercise
+
+In an AWS test account, create a Route 53 public hosted zone for a domain you control or use an existing test zone.
+
+Create a simple DNS record and verify it from Linux with:
+
+```bash
+dig <hostname>
+dig +short <hostname>
+```
+
+**Goal:** Connect the Route 53 hosted-zone concept to real DNS queries.
+
+---
+
+### Lab 7 — Route 53 Private DNS Exercise
+
+Using a test VPC, create/associate a private hosted zone and create an internal record such as:
+
+```text
+app.internal.example.com
+```
+
+From an instance in the associated VPC, test:
+
+```bash
+dig app.internal.example.com
+```
+
+Then test connectivity to the returned private IP.
+
+**Goal:** Understand the difference between public DNS and VPC-internal DNS resolution.
+
+---
+
+### Lab 8 — Diagnose a DNS-Based Service Failure
+
+Simulate or document a service failure using:
+
+```text
+api.example.com:443
+```
+
+Investigate in this order:
+
+```text
+DNS name
+ ↓
+DNS answer
+ ↓
+resolver used
+ ↓
+IP address
+ ↓
+route
+ ↓
+TCP/443
+ ↓
+listener
+ ↓
+AWS Security Group / NACL
+ ↓
+application
+```
+
+Useful commands:
+
+```bash
+dig api.example.com
+dig @8.8.8.8 api.example.com
+dig +trace api.example.com
+ip route get <destination-ip>
+nc -vz <destination-ip> 443
+sudo ss -lntp | grep ':443'
+```
+
+**Goal:** Produce evidence showing the first failed layer instead of simply reporting "DNS is down" or "firewall issue".
+
+---
+
+### DAY 2 Capstone — DNS + AWS Troubleshooting Report
+
+Create a short incident report for an unreachable AWS service containing:
+
+```text
+Hostname:
+Resolver:
+DNS status:
+DNS record type:
+Resolved IP:
+TTL:
+Route:
+TCP port:
+Listener:
+Security Group:
+Network ACL:
+Application:
+Root cause:
+Evidence:
+```
+
+**Success criteria:** You can clearly separate DNS resolution from the network and application path and explain how Route 53 fits into the architecture.
