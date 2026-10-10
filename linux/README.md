@@ -10,7 +10,7 @@ All Linux interview questions from every DAY are maintained in one centralized, 
 [Open Linux Interview Questions](./INTERVIEW%20QUESTIONS.md)
 
 ### 🧪 Practical Lab Workbook
-All hands-on labs and practical exercises from every DAY are maintained in one centralized workbook so all practice is available in one place.
+All hands-on labs and practical exercises from every DAY are maintained in one centralized workbook.
 
 [Open Linux Practical Labs](./LABS.md)
 
@@ -28,7 +28,7 @@ All hands-on labs and practical exercises from every DAY are maintained in one c
 ### DAY 2 — Filesystems & Disk Troubleshooting
 - Filesystems, mounts and mount points
 - df, du, lsblk, mount, findmnt
-- Inode exhaustion, large-file investigation
+- Inode exhaustion and large-file investigation
 - Deleted-but-open files and production disk troubleshooting
 
 [Open DAY 2 notes](./DAY%202%20-%20filesystems-disks.md)
@@ -44,15 +44,15 @@ All hands-on labs and practical exercises from every DAY are maintained in one c
 ### DAY 4 — systemd Services, Dependencies & Restart Behavior
 - systemctl lifecycle and active vs enabled
 - Requires, Wants, After and Before
-- Restart policies, daemon-reload
+- Restart policies and daemon-reload
 - Troubleshooting services that start and immediately exit
 
 [Open DAY 4 notes](./DAY%204%20-%20systemd-services.md)
 
 ### DAY 5 — journalctl & Log-Driven Troubleshooting
-- journalctl filters, service/boot/time/priority filtering
+- journalctl service/boot/time/priority filtering
 - Progressive log narrowing and root-cause troubleshooting
-- Journal persistence/disk usage and AWS/EC2 connection
+- Journal disk usage and AWS/EC2 connection
 
 [Open DAY 5 notes](./DAY%205%20-%20journalctl-log-troubleshooting.md)
 
@@ -72,7 +72,7 @@ All hands-on labs and practical exercises from every DAY are maintained in one c
 
 ### DAY 8 — Bash Error Handling, Traps & Safe Automation
 - trap, cleanup, signal handling and explicit error handling
-- mktemp, flock, safe command construction
+- mktemp, flock and safe command construction
 - AWS CLI/Kubernetes automation safety
 
 [Open DAY 8 notes](./DAY%208%20-%20bash-error-handling-traps.md)
@@ -100,19 +100,14 @@ All hands-on labs and practical exercises from every DAY are maintained in one c
 
 ---
 
-## 🧪 Practical Practice
-
-[Open the centralized Linux Lab Workbook](./LABS.md)
-
-Use the workbook to repeat every lab from DAY 1 onward.
-
 ## 📌 Daily Update Rule
 
 For every new Linux study DAY:
 
-1. Create/update the DAY-wise topic file with complete notes, practical lab and interview questions.
-2. Update this README with the new DAY and link.
-3. Add the new interview questions to the centralized **[Linux Interview Questions](./INTERVIEW%20QUESTIONS.md)** file.
-4. Add the new practical exercises to the centralized **[Linux Practical Labs](./LABS.md)** workbook.
-5. Keep the DAY file's own interview and practical sections as well.
+1. Create **only one new DAY-wise topic file** containing the learning notes.
+2. Keep practical labs **only** in the centralized [Linux Practical Labs](./LABS.md) workbook.
+3. Keep interview questions **only** in the centralized [Linux Interview Questions](./INTERVIEW%20QUESTIONS.md) file.
+4. Update this README with the new DAY and link.
+5. Never create separate per-day LABS or INTERVIEW QUESTIONS files.
 6. Do not create duplicate topic files when an existing canonical file has already been established.
+7. Preserve the DAY numbering per technology/folder.
