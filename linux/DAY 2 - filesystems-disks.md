@@ -1,235 +1,269 @@
-# Linux Filesystems, Mounts, Inodes & Disk Troubleshooting
+# DAY 2 - Linux Filesystems, Mounts, Inodes & Disk Troubleshooting
 
-> Job-switch study notes — learn the commands, then practice the troubleshooting flow in `linux/LABS.md`.
+> **Goal:** Understand where Linux stores files and how to troubleshoot a server when disk space is full.
 
-## 1. Linux filesystem mental model
+## 1. Start with the basic picture
+
+Think of Linux storage like this:
 
 ```text
-Disk → Block device → Partition/LVM → Filesystem → Mount point → Directory tree → Files
+Physical disk
+   ↓
+Partition / LVM
+   ↓
+Filesystem
+   ↓
+Mounted somewhere
+   ↓
+Directories and files
 ```
+
+A **filesystem** is the structure Linux uses to store files. A **mount point** is the directory where that filesystem becomes accessible.
 
 Example:
 
 ```text
-/dev/nvme0n1p1 → ext4 → /
-/dev/sdb1      → xfs  → /data
+/dev/xvdf1  →  ext4 filesystem  →  /data
 ```
 
-A filesystem must be mounted before its files are accessible through the normal directory tree.
+## 2. What is `/`?
 
-## 2. Filesystem vs mount point
+Linux has one main directory tree starting at `/`, called the **root filesystem**.
 
-A **filesystem** organizes files and metadata. A **mount point** is the directory where that filesystem is attached.
+Common directories:
 
 ```text
-/dev/sdb1 → /data
+/       root of the filesystem tree
+/etc    configuration
+/var    changing data and logs
+/home   user home directories
+/tmp    temporary files
+/dev    devices
+/proc   process/kernel information
 ```
 
-Inspect mounts:
+## 3. Check disk space: `df`
+
+`df` means **disk free**. It tells you how much space is available in each mounted filesystem.
 
 ```bash
-mount
-findmnt
-findmnt /data
-```
-
-## 3. df — filesystem capacity
-
-Use `df` to answer: **How full is the filesystem?**
-
-```bash
-df
 df -h
+```
+
+`-h` = human-readable sizes such as GB and MB.
+
+Example:
+
+```text
+Filesystem   Size  Used Avail Use% Mounted on
+/dev/xvda1   20G   19G  1G   95% /
+```
+
+If `/` is 95% full, applications may start failing.
+
+## 4. Check inode usage
+
+Files need more than disk blocks. Linux also uses **inodes** to store file metadata.
+
+Check inode usage:
+
+```bash
 df -i
+```
+
+Human-readable:
+
+```bash
 df -ih
 ```
 
-`df -h` reports block-space usage. `df -i` reports inode usage.
+A filesystem can have free GB but still be unable to create files if all inodes are used.
 
-## 4. du — directory/file usage
+## 5. Find what is using space: `du`
 
-Use `du` to answer: **Which directories/files consume the space?**
+`du` means **disk usage**.
 
 ```bash
-du -h
-du -sh /var/log
+du -sh /var
+```
+
+- `-s` = summary only
+- `-h` = human-readable
+
+Check directories:
+
+```bash
 du -xh --max-depth=1 /var | sort -hr
-du -xh --max-depth=1 / | sort -hr
 ```
 
-Drill down from a large directory until the source is identified.
+Meanings:
 
-## 5. Find large files
+- `-x` = stay on the current filesystem
+- `-h` = human-readable
+- `--max-depth=1` = show one directory level
+- `sort -hr` = sort human-readable sizes from largest to smallest
+
+## 6. Find large files
 
 ```bash
-find /var -type f -printf '%s %p\n' 2>/dev/null | sort -nr | head
-find /var -type f -exec du -h {} + 2>/dev/null | sort -hr | head
+find /var -xdev -type f -size +1G -ls
 ```
 
-Avoid unnecessarily broad scans on large production systems.
+Meaning:
 
-## 6. lsblk and findmnt
+- `find` = search files/directories
+- `/var` = search location
+- `-xdev` = do not cross into another filesystem
+- `-type f` = regular files
+- `-size +1G` = larger than 1 GB
+- `-ls` = show detailed information
 
-`lsblk` shows block devices and partitions:
+## 7. Understand `lsblk`
+
+`lsblk` shows block devices such as disks and partitions.
 
 ```bash
 lsblk
 lsblk -f
 ```
 
-`lsblk -f` is useful for filesystem type, UUID, labels and mount points.
+`-f` shows filesystem information.
 
-`findmnt` gives structured mount information:
-
-```bash
-findmnt
-findmnt /
-findmnt /data
-```
-
-Mental model:
+Example mental model:
 
 ```text
-lsblk     → what storage exists?
-df        → how full is each mounted filesystem?
-du        → what consumes the space?
-findmnt   → where is it mounted?
+xvda       disk
+└─xvda1    partition
+   └─/     mounted filesystem
 ```
 
-## 7. Mounting and /etc/fstab
+## 8. What does mounting mean?
 
-General syntax:
-
-```bash
-mount <device> <mount-point>
-```
+A filesystem on a disk is not automatically visible through a directory. Linux must **mount** it.
 
 Example:
 
 ```bash
-mount /dev/sdb1 /data
-df -h /data
-findmnt /data
+sudo mount /dev/xvdf1 /data
 ```
 
-`/etc/fstab` stores persistent mount configuration:
+Now files stored on that filesystem appear under `/data`.
 
-```text
-UUID=xxxx-xxxx  /data  ext4  defaults  0  2
-```
-
-Validate `fstab` changes carefully. A bad entry can cause mount, boot or service problems.
-
-## 8. Inodes
-
-An **inode** stores filesystem metadata such as file type, permissions, owner/group, size, timestamps and references to data blocks.
-
-Every file consumes an inode. Therefore a filesystem can have free disk space but still fail to create files if it runs out of inodes.
-
-## 9. Disk-space vs inode exhaustion
-
-```text
-Block-space exhaustion:
-Disk space → 100%
-Inodes     → available
-
-Inode exhaustion:
-Disk space → may still have free space
-Inodes     → 100%
-```
-
-Always check both:
+Check mounts:
 
 ```bash
-df -h
-df -i
-```
-
-Common inode causes include millions of tiny files, temporary/session files, caches, log fragments, container data and application cleanup bugs.
-
-## 10. Finding inode-heavy directories
-
-Start with:
-
-```bash
-df -i
-```
-
-Then inspect file counts. `-xdev` prevents `find` from crossing into other mounted filesystems:
-
-```bash
-find /var -xdev -type f -printf '%h\n' 2>/dev/null | sort | uniq -c | sort -nr | head
-```
-
-Troubleshooting model:
-
-```text
-df -i → locate filesystem → find inode-heavy directories → identify creator → clean safely → fix retention
-```
-
-## 11. Production disk troubleshooting
-
-If `/` is above 90%:
-
-```bash
-df -h
-df -i
-lsblk -f
 findmnt
-du -xh --max-depth=1 / | sort -hr
+mount
 ```
 
-Drill into large paths:
+## 9. `/etc/fstab`
 
-```bash
-du -xh --max-depth=1 /var | sort -hr
-du -xh --max-depth=1 /var/log | sort -hr
-find /var/log -type f -exec du -h {} + 2>/dev/null | sort -hr | head
-```
+`/etc/fstab` contains filesystem mount configuration that can be used during boot.
 
-Identify the owning service, retention policy and whether files are actively used before cleaning.
-
-## 12. Deleted-but-open files
-
-Sometimes `df` shows a full filesystem while `du` does not explain the usage. A process may still have a deleted file open.
-
-```bash
-lsof +L1
-lsof | grep deleted
-```
-
-The space remains allocated until the process closes the file descriptor. Restarting the relevant process can release it, but assess service impact first.
-
-## 13. Common mistakes
-
-- Using only `df -h` and expecting it to identify the offending file.
-- Checking disk space but not inodes.
-- Running an unrestricted `du /` on a large production host.
-- Deleting files before identifying their owner and purpose.
-- Using `rm` as the first response to a disk alert.
-
-Safe mental model:
+Example concept:
 
 ```text
-Measure → Identify → Understand → Clean safely → Prevent recurrence
+UUID=xxxx  /data  ext4  defaults  0  2
 ```
 
-## 14. Command cheat sheet
+Why UUID is useful: device names can change, while a filesystem UUID identifies the filesystem more reliably.
 
-| Goal | Command |
-|---|---|
-| Filesystem usage | `df -h` |
-| Inode usage | `df -i` |
-| Block devices | `lsblk` |
-| Filesystem details | `lsblk -f` |
-| Current mounts | `mount` |
-| Structured mounts | `findmnt` |
-| Directory size | `du -sh <dir>` |
-| Top-level directory sizes | `du -xh --max-depth=1 <dir>` |
-| Sort largest first | `du -xh --max-depth=1 <dir> \| sort -hr` |
-| Persistent mounts | `cat /etc/fstab` |
-| Deleted-but-open files | `lsof +L1` |
+**Production warning:** a bad `fstab` entry can cause boot problems. Validate changes carefully.
 
-## DevOps relevance
+## 10. Disk full vs inode full
 
-Disk troubleshooting is common on Linux application servers and EC2. The key distinction is **filesystem capacity vs inode capacity**, followed by a safe drill-down to the owning workload and prevention through retention, rotation, cleanup and monitoring.
+### Situation A: disk blocks are full
+
+```bash
+df -h
+```
+
+shows very high `Use%`.
+
+Investigate:
+
+```bash
+du -xh --max-depth=1 /
+find / -xdev -type f -size +1G -ls
+```
+
+### Situation B: inodes are full
+
+```bash
+df -i
+```
+
+shows very high inode usage.
+
+This often happens when an application creates millions of tiny files.
+
+Find directories containing huge numbers of files:
+
+```bash
+find /var -xdev -type f | cut -d/ -f1-4 | sort | uniq -c | sort -nr | head
+```
+
+## 11. Deleted file still using disk
+
+Sometimes an application deletes a large log file while keeping it open.
+
+The filename disappears, but the process still holds the file descriptor.
+
+Check:
+
+```bash
+sudo lsof +L1
+```
+
+If a huge deleted file is held open, restart the responsible application carefully or use the application's log-rotation mechanism.
+
+## 12. Production disk troubleshooting
+
+When an application says `No space left on device`:
+
+```text
+1. df -h
+      ↓
+2. df -i
+      ↓
+3. Find the full filesystem
+      ↓
+4. du to find large directories
+      ↓
+5. find to locate large files
+      ↓
+6. Check deleted-but-open files
+      ↓
+7. Check logs / application behavior
+      ↓
+8. Clean safely or expand storage
+```
+
+Never blindly run `rm -rf` on a production server. Identify the owner and purpose of the data first.
+
+## 13. DevOps / AWS connection
+
+On EC2, disk problems are common when logs or application data grow unexpectedly.
+
+Typical investigation:
+
+```bash
+df -h
+lsblk -f
+du -xh --max-depth=1 /var
+journalctl --disk-usage
+```
+
+If the underlying EBS volume needs more capacity, the Linux filesystem may also need to be extended after the AWS-side volume change.
+
+### Beginner takeaway
+
+Remember this difference:
+
+- `df` → **How full is the filesystem?**
+- `du` → **Which files/directories are using the space?**
+- `lsblk` → **What disks/partitions exist?**
+- `mount`/`findmnt` → **Where are filesystems attached?**
+- `df -i` → **Are we out of inodes instead of disk blocks?**
+
+> Labs and interview questions are maintained centrally in `linux/LABS.md` and `linux/INTERVIEW QUESTIONS.md`.
