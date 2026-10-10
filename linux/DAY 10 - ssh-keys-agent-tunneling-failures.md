@@ -1,27 +1,36 @@
-# DAY 10 — SSH: Keys, Agent, Tunneling & Common Failures
+# DAY 10 - SSH: Keys, Agent, Tunneling & Failures
 
-> Linux / AWS — DevOps Job-Switch Notes
+> **Goal:** Understand SSH from the beginning and troubleshoot common SSH problems systematically.
 
-## 1. SSH basics
+## 1. What is SSH?
 
-SSH provides encrypted remote access and command execution.
+**SSH (Secure Shell)** is a secure way to connect to another computer over a network.
+
+Example:
 
 ```bash
 ssh user@server
-ssh -i ~/.ssh/my-key.pem ec2-user@<public-ip>
 ```
 
-- `ssh` = SSH client
-- `-i` = identity/private-key file
-- `user@server` = remote user and destination
+In DevOps, SSH is commonly used to access Linux servers such as EC2 instances.
 
-Common DevOps uses: EC2 access, bastions, remote commands, file transfer and secure tunnels.
-
-## 2. SSH keys
+Think:
 
 ```text
-Private key → stays secret on client
-Public key  → installed/authorized on server
+Your laptop
+    ↓ encrypted SSH connection
+Linux server
+```
+
+## 2. SSH key authentication
+
+Instead of relying only on passwords, SSH commonly uses a key pair.
+
+There are two keys:
+
+```text
+Private key → stays secret on your computer
+Public key  → can be placed on the server
 ```
 
 Typical files:
@@ -32,34 +41,64 @@ Typical files:
 ~/.ssh/authorized_keys
 ```
 
-Generate:
+The server checks whether your public key matches the private key you are using.
+
+## 3. Create an SSH key
 
 ```bash
 ssh-keygen -t ed25519 -C "devops-lab"
 ```
 
+Meaning:
+
+- `ssh-keygen` = create/manage SSH keys
 - `-t` = key type
+- `ed25519` = key algorithm
 - `-C` = comment
 
-Protect keys:
+Never commit a private key to GitHub.
+
+## 4. SSH key permissions
+
+Protect private keys:
 
 ```bash
 chmod 700 ~/.ssh
 chmod 600 ~/.ssh/id_ed25519
-chmod 600 ~/.ssh/authorized_keys
 ```
 
-`700` gives the owner `rwx`; `600` gives the owner `rw` and no group/other access.
+A private key that is readable by other users may be rejected by SSH.
 
-Never commit or share a private key.
+You may see:
 
-## 3. SSH client/server configuration
+```text
+WARNING: UNPROTECTED PRIVATE KEY FILE!
+```
 
-Client:
+Fix the permissions first.
+
+## 5. `authorized_keys`
+
+On the server, a user's allowed public keys are commonly stored in:
+
+```text
+~/.ssh/authorized_keys
+```
+
+For example:
+
+```bash
+cat ~/.ssh/authorized_keys
+```
+
+The private key should remain on the client.
+
+## 6. SSH client configuration
+
+Instead of repeatedly typing a long command, use:
 
 ```text
 ~/.ssh/config
-/etc/ssh/ssh_config
 ```
 
 Example:
@@ -72,126 +111,164 @@ Host my-ec2
     IdentitiesOnly yes
 ```
 
+Then simply:
+
+```bash
+ssh my-ec2
+```
+
 Important options:
 
-- `Host` = alias/pattern
-- `HostName` = actual destination
+- `Host` = shortcut name
+- `HostName` = real server address
 - `User` = remote username
 - `IdentityFile` = private key
 - `IdentitiesOnly yes` = restrict identity selection
 
-Server configuration is commonly:
+## 7. Debug SSH with `-vvv`
 
-```text
-/etc/ssh/sshd_config
-```
-
-Validate before changing/reloading:
+When SSH fails, use:
 
 ```bash
-sudo sshd -t
-```
-
-Do not blindly restart SSH after configuration changes on a remote production host; a mistake can lock you out.
-
-## 4. SSH debugging
-
-```bash
-ssh -v user@host
-ssh -vv user@host
 ssh -vvv user@host
 ```
 
-Look for connection establishment, keys offered, authentication methods and the final failure.
+The extra `v`s increase debugging information.
 
-The goal is to identify the failing layer rather than change configuration blindly.
+You are looking for where the failure happens:
 
-## 5. ssh-agent
+```text
+Network connection
+      ↓
+SSH server
+      ↓
+Authentication
+      ↓
+Authorization
+      ↓
+Shell/session
+```
 
-`ssh-agent` holds private-key material in memory so SSH can use keys without repeatedly requesting their passphrases.
+## 8. ssh-agent
+
+`ssh-agent` keeps private-key identities available in memory so you do not have to repeatedly provide the key/passphrase.
+
+Start an agent:
 
 ```bash
 eval "$(ssh-agent -s)"
+```
+
+Add a key:
+
+```bash
 ssh-add ~/.ssh/id_ed25519
+```
+
+List keys:
+
+```bash
 ssh-add -l
-ssh-add -L
+```
+
+Remove all loaded keys:
+
+```bash
 ssh-add -D
 ```
 
-- `ssh-agent -s` = shell-compatible environment output
-- `ssh-add -l` = list fingerprints
-- `ssh-add -L` = list public keys
-- `ssh-add -D` = remove all identities
+## 9. Too many authentication failures
 
-Too many loaded keys can cause authentication-attempt failures. Use:
+Suppose your agent contains many keys.
+
+SSH may try several of them and the server can reject the connection before the correct key is attempted.
+
+Use:
 
 ```bash
 ssh -o IdentitiesOnly=yes -i ~/.ssh/my-key.pem ec2-user@host
 ```
 
-## 6. Agent forwarding
+`-o` sets an SSH option.
+
+`IdentitiesOnly=yes` tells SSH to use the explicitly selected identities instead of trying a large collection of agent keys.
+
+## 10. Bastion / jump host
+
+A private EC2 instance may not be directly reachable from your laptop.
 
 Architecture:
 
 ```text
-Laptop → Bastion → Private EC2
+Laptop
+  ↓
+Bastion / jump server
+  ↓
+Private EC2
 ```
 
-Enable forwarding:
-
-```bash
-ssh -A ec2-user@bastion
-```
-
-The private key remains on the laptop, but the bastion can use the forwarded agent during the session. A compromised intermediate host may be able to use the forwarded agent, so enable it only when required.
-
-## 7. ProxyJump / bastion
+Use `ProxyJump`:
 
 ```bash
 ssh -J ec2-user@bastion ec2-user@private-server
 ```
 
-`-J` = ProxyJump through an intermediate SSH host.
+`-J` = connect through a jump host.
 
-Configuration:
+This is primarily about the **network path**.
 
-```sshconfig
-Host private-server
-    HostName 10.0.2.50
-    User ec2-user
-    ProxyJump ec2-user@bastion
+## 11. Agent forwarding
+
+Agent forwarding is different from ProxyJump.
+
+```bash
+ssh -A ec2-user@bastion
 ```
 
-**ProxyJump** provides the network path through the bastion. **Agent forwarding** forwards the authentication agent. They solve different problems.
+It allows the remote session to use your forwarded SSH agent.
 
-## 8. SSH tunneling
+Important security point: a compromised intermediate server may be able to use the forwarded agent during the session. Enable it only when needed.
+
+Remember:
 
 ```text
--L → local forwarding
--R → remote forwarding
--D → dynamic SOCKS forwarding
+ProxyJump       → network path
+Agent forwarding → authentication agent
+```
+
+## 12. SSH tunneling
+
+SSH can securely forward network traffic.
+
+Three common options:
+
+```text
+-L = local forwarding
+-R = remote forwarding
+-D = dynamic SOCKS forwarding
 ```
 
 ### Local forwarding
 
 ```bash
-ssh -L 8080:10.0.2.50:80 ec2-user@bastion
-curl http://localhost:8080
+ssh -L 8080:10.0.2.50:80 user@bastion
 ```
 
-Traffic:
+Now:
 
 ```text
-Laptop localhost:8080 → SSH → Bastion → 10.0.2.50:80
+Laptop localhost:8080
+       ↓
+SSH connection
+       ↓
+Bastion
+       ↓
+10.0.2.50:80
 ```
 
-Syntax:
+`-L local_port:destination_host:destination_port`.
 
-```text
--L local_port:destination_host:destination_port
-```
-
-The SSH server side must be able to reach the destination.
+The important point: the SSH server side must be able to reach the destination.
 
 ### Remote forwarding
 
@@ -204,112 +281,99 @@ This exposes a client-side destination through a remote listening port. Use care
 ### Dynamic forwarding
 
 ```bash
-ssh -D 1080 ec2-user@bastion
+ssh -D 1080 user@bastion
 ```
 
-Creates a SOCKS proxy at `localhost:1080`.
+Creates a SOCKS proxy at local port `1080`.
 
-## 9. AWS SSH architecture
+## 13. SSH server configuration
 
-Typical private-EC2 design:
+Server configuration is commonly:
 
 ```text
-Laptop
-  ↓ TCP 22
-Bastion / public EC2
-  ↓ TCP 22
-Private EC2
+/etc/ssh/sshd_config
 ```
 
-Security Group design:
+Before applying a configuration change:
+
+```bash
+sudo sshd -t
+```
+
+`-t` tests configuration syntax.
+
+Do not blindly restart SSH after changing configuration on a remote production server. Keep a working session available where possible.
+
+## 14. Failure: connection timeout
+
+Example:
 
 ```text
-Bastion SG:
-TCP 22 ← trusted admin source
-
-Private EC2 SG:
-TCP 22 ← Bastion SG
+ssh: connect to host server port 22: Connection timed out
 ```
 
-Avoid broad SSH exposure such as `0.0.0.0/0` when a narrower source is possible.
-
-Also consider route tables, NACLs, host firewall, subnet routing and DNS.
-
-### SSH vs IAM
-
-```text
-IAM → AWS API authorization
-SSH → network + sshd + Linux authentication
-```
-
-IAM permission does not automatically provide OS-level SSH access. AWS Systems Manager Session Manager can be a managed alternative to direct inbound SSH in suitable architectures.
-
-## 10. Connection timeout
-
-For:
-
-```text
-ssh: connect to host <host> port 22: Connection timed out
-```
+This usually means the connection is failing before SSH authentication.
 
 Think:
 
 ```text
-DNS/IP → route → Security Group → NACL → firewall → sshd listening
+DNS/IP
+ ↓
+Route
+ ↓
+Security Group
+ ↓
+NACL
+ ↓
+Firewall
+ ↓
+sshd listening
 ```
 
-Test from an appropriate host:
+Test connectivity where appropriate:
 
 ```bash
-nc -vz <host> 22
+nc -vz host 22
+```
+
+On the server, if another access path exists:
+
+```bash
 sudo ss -lntp | grep ':22'
 sudo systemctl status sshd
 ```
 
-Do not start by changing `authorized_keys` when the error is a timeout. Authentication may not have been reached.
+Do **not** start by changing `authorized_keys` when the error is a timeout.
 
-## 11. Permission denied (publickey)
+## 15. Failure: Permission denied (publickey)
+
+Example:
 
 ```text
 Permission denied (publickey).
 ```
 
-Client checks:
+Now authentication is the focus.
+
+Check:
 
 ```bash
 ssh -vvv -i ~/.ssh/my-key.pem ec2-user@host
 ls -l ~/.ssh/my-key.pem
-ssh-keygen -y -f ~/.ssh/my-key.pem
 ```
 
-Server-side checks:
+Potential causes:
 
-```bash
-ls -ld ~/.ssh
-ls -l ~/.ssh/authorized_keys
-```
+- wrong private key
+- wrong username
+- public key missing from `authorized_keys`
+- incorrect permissions/ownership
+- wrong key selected by agent
+- SSH server authentication configuration
 
-Common causes:
+## 16. Failure: host key changed
 
-- Wrong private key
-- Wrong username
-- Public key missing from `authorized_keys`
-- Incorrect ownership/permissions
-- sshd authentication configuration
-- Wrong key being offered by agent
-
-## 12. Too many authentication failures
-
-Often caused by an agent containing many keys:
-
-```bash
-ssh-add -l
-ssh -o IdentitiesOnly=yes -i ~/.ssh/my-key.pem ec2-user@host
-```
-
-## 13. Host key changed
-
-For:
+You may see:
 
 ```text
 WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!
@@ -321,31 +385,33 @@ SSH stores known host keys in:
 ~/.ssh/known_hosts
 ```
 
-Do not blindly delete the warning. Verify whether the server was rebuilt, the IP/DNS changed or the key was rotated. A malicious interception is also possible.
+Do not blindly delete the warning. First determine whether the server was rebuilt or the key legitimately changed.
 
-After verifying the change is legitimate:
+If the change is verified:
 
 ```bash
-ssh-keygen -R <hostname-or-ip>
+ssh-keygen -R <hostname>
 ```
 
-Then validate the new fingerprint through a trusted source.
+Then verify the new fingerprint through a trusted source.
 
-## 14. Tunnel failure
+## 17. Failure: tunnel does not work
 
 For:
 
 ```bash
-ssh -L 8080:10.0.2.50:80 ec2-user@bastion
+ssh -L 8080:10.0.2.50:80 user@bastion
 ```
 
 Check:
 
-1. SSH connection itself works.
-2. Local port is bound.
-3. Bastion can reach `10.0.2.50:80`.
-4. Destination service is listening.
-5. Security Groups/firewalls permit the traffic.
+```text
+1. Is SSH connected?
+2. Is localhost:8080 listening?
+3. Can the bastion reach 10.0.2.50:80?
+4. Is the destination application listening?
+5. Do firewalls/Security Groups allow it?
+```
 
 From the bastion:
 
@@ -353,107 +419,118 @@ From the bastion:
 nc -vz 10.0.2.50 80
 ```
 
-A tunnel does not bypass destination-side networking.
+A tunnel does not magically bypass destination networking.
 
-## 15. Production failure scenario
+## 18. AWS SSH architecture
 
-A DevOps engineer can reach a bastion but cannot SSH to a private EC2 instance:
-
-```bash
-ssh -J ec2-user@bastion ec2-user@10.0.2.50
-```
-
-The error is:
+Typical private EC2 design:
 
 ```text
-connect to host 10.0.2.50 port 22: Connection timed out
+Laptop
+  ↓ TCP 22
+Bastion
+  ↓ TCP 22
+Private EC2
 ```
 
-Changing `authorized_keys` is the wrong first move. Test reachability from the bastion:
-
-```bash
-nc -vz 10.0.2.50 22
-```
-
-Suppose the private instance Security Group allows TCP/22 only from an old bastion Security Group. The new bastion is not an allowed source.
-
-Fix the Security Group source to the intended bastion Security Group, then retest:
-
-```bash
-nc -vz 10.0.2.50 22
-ssh -J ec2-user@bastion ec2-user@10.0.2.50
-```
-
-## 16. SSH troubleshooting mental model
-
-Use:
+Security Groups might allow:
 
 ```text
-REACH → LISTEN → AUTHENTICATE → AUTHORIZE → SESSION → APPLICATION
+Bastion SG:
+TCP 22 ← trusted admin IP
+
+Private EC2 SG:
+TCP 22 ← Bastion SG
 ```
 
-### REACH
+Avoid opening SSH to `0.0.0.0/0` when a narrower source is possible.
 
-```bash
-nc -vz host 22
+Also remember:
+
+- IAM controls AWS API permissions.
+- SSH controls Linux access.
+- Security Groups control network reachability.
+
+Having IAM permission does not automatically give you Linux SSH access.
+
+AWS Systems Manager Session Manager can also provide a managed alternative to direct inbound SSH in suitable environments.
+
+## 19. Production troubleshooting model
+
+Use this order:
+
+```text
+REACH
+  ↓
+LISTEN
+  ↓
+AUTHENTICATE
+  ↓
+AUTHORIZE
+  ↓
+SESSION
+  ↓
+APPLICATION
 ```
 
-### LISTEN
+Examples:
 
-```bash
-sudo ss -lntp | grep ':22'
+```text
+Timeout
+→ investigate network/reachability
+
+Connection refused
+→ investigate service/listener/firewall
+
+Permission denied (publickey)
+→ investigate authentication
+
+Host key changed
+→ investigate trust/identity
+
+Tunnel failure
+→ investigate forwarding + destination reachability
 ```
 
-### AUTHENTICATE
+## 20. Commands to remember
 
 ```bash
+ssh user@host
+ssh -i key user@host
 ssh -vvv user@host
+ssh -J user@bastion user@target
+ssh -A user@bastion
+ssh -L 8080:host:80 user@server
+ssh -R 9000:localhost:3000 user@server
+ssh -D 1080 user@server
+ssh-keygen -t ed25519
+ssh-keygen -R host
+ssh-add key
+ssh-add -l
+ssh-add -D
+ss -lntp
+nc -vz host 22
+sudo sshd -t
 ```
 
-### AUTHORIZE
+### Beginner takeaway
 
-Check `authorized_keys`, account restrictions and `sshd_config`.
+Do not memorize SSH troubleshooting as random commands.
 
-### SESSION
-
-Confirm expected shell/command execution.
-
-### APPLICATION
-
-For tunnels, verify the destination application from the SSH server side.
-
-## 17. Command cheat sheet
-
-| Command | Meaning |
-|---|---|
-| `ssh user@host` | SSH connection |
-| `ssh -i key user@host` | Select private key |
-| `ssh -vvv user@host` | Detailed client debugging |
-| `ssh -J user@bastion user@target` | ProxyJump |
-| `ssh -A user@bastion` | Agent forwarding |
-| `ssh -L 8080:host:80 user@server` | Local tunnel |
-| `ssh -R 9000:localhost:3000 user@server` | Remote tunnel |
-| `ssh -D 1080 user@server` | SOCKS proxy |
-| `ssh-keygen -t ed25519` | Generate key |
-| `ssh-keygen -R host` | Remove verified old known-host entry |
-| `ssh-keygen -y -f key` | Derive public key |
-| `ssh-add key` | Add key to agent |
-| `ssh-add -l` | List agent keys |
-| `ssh-add -D` | Remove all agent keys |
-| `chmod 600 private-key` | Protect private key |
-| `ss -lntp` | Listening TCP sockets |
-| `systemctl status sshd` | SSH server status |
-| `journalctl -u sshd` | SSH server logs |
-
-## 18. AWS/DevOps relevance
-
-SSH troubleshooting is a layered problem. Classify the error before changing configuration:
+First identify **which layer failed**:
 
 ```text
-Timeout / refused → network/service layer
-Permission denied → authentication/configuration
-Host-key warning → trust/identity
-Tunnel failure → forwarding/destination reachability
+Can I reach it?
+   ↓
+Is SSH listening?
+   ↓
+Did authentication work?
+   ↓
+Is the user authorized?
+   ↓
+Does the session work?
+   ↓
+Can the target application be reached?
 ```
 
-The most important skill is identifying the failed layer before taking action.
+> Labs and interview questions are maintained centrally in `linux/LABS.md` and `linux/INTERVIEW QUESTIONS.md`.
