@@ -1,218 +1,245 @@
-# Linux Process Management
+# DAY 1 - Linux Process Management
 
-## 1. What is a process?
+> **Goal:** Understand what a Linux process is, how to find it, and how to troubleshoot a process that is using too much CPU or memory.
 
-A **process** is a running instance of a program managed by the operating system. Linux assigns each process a **PID (Process ID)** and tracks its parent with a **PPID (Parent Process ID)**.
+## 1. First: what is Linux?
 
-A process commonly has:
+Linux is an operating system. Just like Windows or macOS, it manages the computer's CPU, memory, disks, network and running programs.
 
-- PID
-- PPID
-- Owner/user
-- CPU and memory usage
-- Process state
-- Start time
-- Command
+As a DevOps engineer, you will often manage Linux servers such as AWS EC2 machines.
 
-Example process hierarchy:
+## 2. What is a process?
 
-```text
-systemd (PID 1)
-├── sshd
-│   └── bash
-│       └── command
-└── nginx
-    ├── worker
-    └── worker
+A **process is a running program**.
+
+For example, when you run:
+
+```bash
+sleep 100
 ```
 
-## 2. ps — process snapshot
+Linux creates a process for `sleep` and gives it a unique number called a **PID**.
 
-`ps` means **process status** and provides a point-in-time snapshot.
+Think of it like this:
+
+```text
+Program on disk
+      ↓
+You start it
+      ↓
+Linux creates a process
+      ↓
+CPU + memory are used
+      ↓
+Process finishes
+```
+
+## 3. PID and PPID
+
+- **PID** = Process ID. Unique number for a running process.
+- **PPID** = Parent Process ID. The PID of the process that started it.
+
+Example:
+
+```bash
+ps -ef
+```
+
+You may see:
+
+```text
+UID   PID   PPID   CMD
+root  1000  1      /usr/sbin/sshd
+user  2450  1000   sshd: user
+```
+
+The second process was started by the first one.
+
+## 4. Find running processes
+
+### `ps`
+
+Shows a snapshot of processes.
 
 ```bash
 ps
 ps aux
 ps -ef
-ps -p <PID> -f
 ```
 
-Common `ps aux` interpretation:
+Useful meanings:
 
-- `a` — processes for all users
-- `u` — user-oriented output
-- `x` — include processes without a controlling terminal
+- `ps` = process status
+- `a` = processes from all users with a terminal
+- `u` = user-oriented output
+- `x` = include processes without a terminal
+- `-e` = every process
+- `-f` = full-format information
 
-Find a process:
+### `pgrep`
+
+Find a PID by process name:
 
 ```bash
-ps aux | grep nginx
-ps -ef | grep nginx
 pgrep nginx
 ```
 
-Show hierarchy:
+### `pstree`
+
+Shows parent/child relationships:
 
 ```bash
-pstree
+pstree -p
 ```
 
-## 3. PID and PPID
+`-p` shows PIDs.
 
-**PID** identifies the current process. **PPID** identifies its parent.
+## 5. Process states
 
-```text
-PID   PPID   CMD
-1200     1   nginx
-1201  1200   nginx worker
-```
+A process is not always actively using the CPU.
 
-## 4. Common process states
+Common states:
 
-| State | Meaning |
+| State | Simple meaning |
 |---|---|
-| R | Running or runnable |
-| S | Sleeping / waiting |
-| D | Uninterruptible sleep, often waiting on I/O |
-| T | Stopped |
-| Z | Zombie |
+| `R` | Running or ready to run |
+| `S` | Sleeping/waiting normally |
+| `D` | Waiting for I/O, usually uninterruptible |
+| `T` | Stopped |
+| `Z` | Zombie; process finished but parent has not collected its status |
 
-A **zombie** has finished execution but remains in the process table until its parent collects its exit status.
-
-## 5. top and htop
-
-`top` continuously monitors processes and system resources.
+## 6. Watch processes in real time
 
 ```bash
 top
+```
+
+`top` continuously shows CPU, memory and process activity.
+
+Useful keys inside `top`:
+
+- `P` = sort by CPU
+- `M` = sort by memory
+- `k` = send a signal to a process
+- `q` = quit
+
+If available, `htop` provides a more user-friendly interface:
+
+```bash
 htop
 ```
 
-Useful `top` keys:
+## 7. What is a signal?
 
-- `P` — sort by CPU
-- `M` — sort by memory
-- `k` — send a signal
-- `q` — quit
+A signal is a message sent to a process asking it to do something.
 
-Load average normally shows 1-, 5-, and 15-minute values.
+Common signals:
 
-Mental model:
+| Signal | Meaning | Typical use |
+|---|---|---|
+| `SIGTERM` / 15 | Please terminate gracefully | Normal shutdown |
+| `SIGKILL` / 9 | Stop immediately | Last resort |
+| `SIGINT` / 2 | Interrupt | Ctrl+C |
+| `SIGHUP` / 1 | Hangup/reload depending on program | Reload configuration |
+| `SIGSTOP` / 19 | Stop process | Pause |
+| `SIGCONT` / 18 | Continue stopped process | Resume |
 
-```text
-ps    → snapshot
-top   → continuous monitoring
-htop  → interactive monitoring
-```
+## 8. Stop a process correctly
 
-## 6. Linux signals
-
-A signal is a notification sent to a process.
-
-```bash
-kill -l
-```
-
-Important signals:
-
-| Signal | Number | Purpose |
-|---|---:|---|
-| SIGHUP | 1 | Hangup; some daemons use it for reload |
-| SIGINT | 2 | Interrupt; commonly Ctrl+C |
-| SIGQUIT | 3 | Quit |
-| SIGKILL | 9 | Forceful termination |
-| SIGTERM | 15 | Graceful termination request |
-| SIGSTOP | 19 | Stop/suspend |
-| SIGCONT | 18 | Resume |
-
-## 7. Graceful vs forceful termination
-
-Default `kill` sends SIGTERM:
+First try a graceful stop:
 
 ```bash
 kill <PID>
-kill -TERM <PID>
 ```
 
-The application can handle SIGTERM and clean up resources.
+`kill` does not necessarily mean "kill immediately". By default it sends `SIGTERM`.
 
-SIGKILL cannot be handled:
+If the process refuses to stop and you understand the impact:
 
 ```bash
 kill -9 <PID>
-kill -KILL <PID>
 ```
 
-Use SIGKILL only when graceful termination is unsuccessful and forceful termination is justified.
+`-9` sends `SIGKILL`.
 
-## 8. SIGINT, SIGSTOP, SIGCONT and SIGHUP
+**Production rule:** prefer graceful termination. Use `kill -9` only when necessary because the process cannot clean up.
 
-`Ctrl+C` normally sends SIGINT:
+## 9. Real-world example: high CPU
+
+Suppose an EC2 server is slow.
+
+Start here:
 
 ```bash
-kill -2 <PID>
+top
 ```
 
-Stop and resume a process:
+Find the process using the CPU. Then:
 
 ```bash
-kill -STOP <PID>
-kill -CONT <PID>
+ps -p <PID> -o pid,ppid,user,%cpu,%mem,stat,cmd
 ```
 
-SIGHUP historically means hangup. Many daemons use it for configuration reload, but behavior depends on the application:
+Check:
+
+1. Which process is using CPU?
+2. Who owns it?
+3. What command started it?
+4. Is high CPU expected?
+5. Is it a service?
+6. Did a recent deployment cause it?
+
+Do not immediately kill a process just because CPU is high. First understand what it is doing.
+
+## 10. Zombie processes
+
+A zombie is a process that has finished, but its parent has not yet collected its exit status.
+
+Find them:
 
 ```bash
-kill -HUP <PID>
+ps -eo pid,ppid,stat,cmd | grep ' Z'
 ```
 
-## 9. Production troubleshooting flow
+The important point is that killing the zombie itself usually does not solve the problem because it is already finished. Investigate the parent process.
 
-For a Java process consuming high CPU:
+## 11. Simple troubleshooting flow
 
 ```text
+Server is slow
+    ↓
 top / htop
-   ↓
-identify PID
-   ↓
-ps -p <PID> -f
-   ↓
-check logs and application behavior
-   ↓
-determine whether usage is expected
-   ↓
-remediate safely
+    ↓
+Find suspicious PID
+    ↓
+ps -p PID -o ...
+    ↓
+Understand process + parent
+    ↓
+Check logs/service
+    ↓
+Decide: wait / restart / terminate / escalate
 ```
 
-If termination is required:
-
-```bash
-kill <PID>
-ps -p <PID>
-# only when appropriate
-kill -9 <PID>
-```
-
-Do not immediately kill a high-CPU production process without understanding the workload and impact.
-
-## 10. Command cheat sheet
+## 12. Commands to remember
 
 ```bash
 ps aux
 ps -ef
-ps -p <PID> -f
-pgrep <process>
-pstree
+pgrep nginx
+pstree -p
 top
-htop
+ps -p <PID> -o pid,ppid,user,%cpu,%mem,stat,cmd
 kill <PID>
-kill -15 <PID>
 kill -9 <PID>
-kill -STOP <PID>
-kill -CONT <PID>
-kill -l
 ```
 
-## DevOps relevance
+### Beginner takeaway
 
-Process management is foundational for troubleshooting high CPU, hung applications, failed services, crashes, zombie processes and production incidents. It connects directly to `systemctl`, `journalctl`, resource troubleshooting and application recovery.
+If you remember only three things today:
+
+1. **Process = running program.**
+2. **PID = unique number of that process.**
+3. **Use `ps`/`top` to investigate before sending signals.**
+
+> Labs and interview questions for this topic are maintained centrally in `linux/LABS.md` and `linux/INTERVIEW QUESTIONS.md`.
