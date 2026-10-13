@@ -8,144 +8,65 @@ Centralized practical labs for Networking. Labs from every Networking DAY are ad
 
 ### Lab 1 — Inspect Your Linux Network
 
-Run:
-
 ```bash
 ip addr
 ip route
 ip route get 8.8.8.8
 ```
 
-**Goal:** Identify your active interface, local IP, default gateway, and the route Linux chooses for an external destination.
-
----
+**Goal:** Identify your active interface, local IP, default gateway, and selected route.
 
 ### Lab 2 — Inspect Listening Services
 
-Run:
-
 ```bash
 sudo ss -lntup
-```
-
-Pick three listening ports and identify the process behind each one.
-
-Then compare:
-
-```bash
 ss -lnt
 sudo ss -lntp
 ```
 
-**Goal:** Understand the difference between seeing a listening socket and identifying the owning process.
-
----
+**Goal:** Understand listening sockets and owning processes.
 
 ### Lab 3 — Create a Simple TCP Service
 
-On one terminal:
-
 ```bash
 python3 -m http.server 8080 --bind 0.0.0.0
-```
-
-In another terminal:
-
-```bash
 sudo ss -lntp | grep ':8080'
-```
-
-Then test locally:
-
-```bash
 curl http://127.0.0.1:8080
 ```
 
-**Goal:** Connect the application process → listening socket → TCP port → client request.
-
----
+**Goal:** Connect process → socket → port → request.
 
 ### Lab 4 — Understand `127.0.0.1` vs `0.0.0.0`
 
-Stop the previous server and start:
-
 ```bash
 python3 -m http.server 8080 --bind 127.0.0.1
-```
-
-Check:
-
-```bash
 sudo ss -lntp | grep ':8080'
-```
-
-Then start it again with:
-
-```bash
 python3 -m http.server 8080 --bind 0.0.0.0
 ```
 
-Compare the listening address.
-
-**Goal:** Understand why an application that works locally may still be unreachable remotely.
-
----
+**Goal:** Understand why local access can work while remote access fails.
 
 ### Lab 5 — DNS Troubleshooting
-
-Run:
 
 ```bash
 dig example.com
 dig +short example.com
 nslookup example.com
-```
-
-Then query a specific DNS resolver:
-
-```bash
 dig @8.8.8.8 example.com
 ```
 
-**Goal:** Understand hostname resolution and how to separate DNS problems from network connectivity problems.
-
----
+**Goal:** Separate DNS from connectivity.
 
 ### Lab 6 — Test a TCP Port
 
-Run against a known reachable service:
-
 ```bash
 nc -vz example.com 443
-```
-
-Then try a port that is unlikely to be open:
-
-```bash
 nc -vz example.com 81
 ```
 
-Compare the results.
-
-**Goal:** Understand the difference between testing ICMP reachability and testing an actual TCP service port.
-
----
+**Goal:** Compare reachable and unavailable TCP ports.
 
 ### Lab 7 — Build a Full Troubleshooting Flow
-
-Use a local HTTP service:
-
-```bash
-python3 -m http.server 8080 --bind 0.0.0.0
-```
-
-Troubleshoot it using only these stages:
-
-```text
-DNS → route → reachability → TCP port → listener → application
-```
-
-Commands to use:
 
 ```bash
 dig +short <hostname>
@@ -156,42 +77,17 @@ sudo ss -lntp | grep ':8080'
 curl http://<destination-ip>:8080
 ```
 
-**Goal:** Practice proving each stage instead of guessing that the firewall is responsible.
-
----
+**Goal:** Prove each layer instead of guessing.
 
 ### Lab 8 — AWS EC2 Connectivity Troubleshooting
 
-Create/use an EC2 test instance with a simple application listening on TCP `8080`.
-
-Verify in order:
-
-1. EC2 private/public IP.
-2. Route table.
-3. Security Group inbound rule.
-4. Network ACL if relevant.
-5. Linux listener with `ss`.
-6. Linux host firewall if enabled.
-7. Application bind address.
-8. Client-side `nc -vz` or `curl`.
+Verify EC2 IP, route table, Security Group, NACL if relevant, Linux listener, host firewall, bind address, and client-side `nc`/`curl`.
 
 **Goal:** Separate AWS-layer failures from Linux-layer failures.
 
-> Use the smallest appropriate Security Group source range. Do not open production services to `0.0.0.0/0` just for testing.
-
----
-
 ### DAY 1 Capstone — Diagnose One Unreachable Service
 
-Given a service such as:
-
-```text
-app.example.com:8080
-```
-
-Pretend the client reports a timeout.
-
-Produce a short incident note containing:
+Document:
 
 ```text
 DNS:
@@ -208,15 +104,11 @@ Root cause:
 Evidence:
 ```
 
-**Success criteria:** You can identify the first failed layer and explain why later layers were or were not investigated.
-
 ---
 
 ## DAY 2 — DNS Resolution, `dig`, `nslookup` and Route 53
 
 ### Lab 1 — Basic DNS Lookup
-
-Run:
 
 ```bash
 dig example.com
@@ -224,15 +116,7 @@ dig +short example.com
 nslookup example.com
 ```
 
-Identify the returned IP address, query status, and answer section.
-
-**Goal:** Become comfortable with the basic DNS lookup workflow.
-
----
-
-### Lab 2 — Query Different Record Types
-
-Run:
+### Lab 2 — Query Record Types
 
 ```bash
 dig A example.com
@@ -242,13 +126,7 @@ dig NS example.com
 dig TXT example.com
 ```
 
-**Goal:** Understand what different DNS records are used for.
-
----
-
 ### Lab 3 — Compare DNS Resolvers
-
-Run:
 
 ```bash
 dig example.com
@@ -256,29 +134,15 @@ dig @8.8.8.8 example.com
 dig @1.1.1.1 example.com
 ```
 
-Compare the answers and TTL values.
-
-**Goal:** Understand how to determine whether a problem is specific to a DNS resolver.
-
----
+Compare answers and TTL values.
 
 ### Lab 4 — Trace DNS Delegation
-
-Run:
 
 ```bash
 dig +trace example.com
 ```
 
-Follow the path from root DNS servers to the authoritative servers for the domain.
-
-**Goal:** Understand DNS delegation rather than treating DNS as a single server.
-
----
-
 ### Lab 5 — Separate DNS From Connectivity
-
-Choose a hostname that resolves to an IP and run:
 
 ```bash
 dig +short <hostname>
@@ -287,75 +151,31 @@ ping <destination-ip>
 nc -vz <destination-ip> <port>
 ```
 
-Record the result of each stage.
+### Lab 6 — Route 53 Public Hosted Zone
 
-**Goal:** Prove whether a failure is DNS, routing, reachability, or TCP-port related.
-
----
-
-### Lab 6 — Route 53 Public Hosted Zone Exercise
-
-In an AWS test account, create a Route 53 public hosted zone for a domain you control or use an existing test zone.
-
-Create a simple DNS record and verify it from Linux with:
+Using an AWS test account and a domain you control, create a test Route 53 record and verify it with:
 
 ```bash
 dig <hostname>
 dig +short <hostname>
 ```
 
-**Goal:** Connect the Route 53 hosted-zone concept to real DNS queries.
+### Lab 7 — Route 53 Private DNS
 
----
-
-### Lab 7 — Route 53 Private DNS Exercise
-
-Using a test VPC, create/associate a private hosted zone and create an internal record such as:
-
-```text
-app.internal.example.com
-```
-
-From an instance in the associated VPC, test:
+Using a test VPC, create/associate a private hosted zone and query the internal record from an associated instance:
 
 ```bash
 dig app.internal.example.com
 ```
 
-Then test connectivity to the returned private IP.
-
-**Goal:** Understand the difference between public DNS and VPC-internal DNS resolution.
-
----
+Then test connectivity to its returned private IP.
 
 ### Lab 8 — Diagnose a DNS-Based Service Failure
 
-Simulate or document a service failure using:
+Investigate:
 
 ```text
-api.example.com:443
-```
-
-Investigate in this order:
-
-```text
-DNS name
- ↓
-DNS answer
- ↓
-resolver used
- ↓
-IP address
- ↓
-route
- ↓
-TCP/443
- ↓
-listener
- ↓
-AWS Security Group / NACL
- ↓
-application
+DNS → resolver → IP → route → TCP/443 → listener → AWS controls → application
 ```
 
 Useful commands:
@@ -369,29 +189,283 @@ nc -vz <destination-ip> 443
 sudo ss -lntp | grep ':443'
 ```
 
-**Goal:** Produce evidence showing the first failed layer instead of simply reporting "DNS is down" or "firewall issue".
+### DAY 2 Capstone — DNS + AWS Troubleshooting Report
+
+Document hostname, resolver, DNS status, record type, IP, TTL, route, TCP port, listener, Security Group, NACL, application, root cause, and evidence.
 
 ---
 
-### DAY 2 Capstone — DNS + AWS Troubleshooting Report
+## DAY 3 — HTTP/HTTPS, TLS Handshake and `curl` Troubleshooting
 
-Create a short incident report for an unreachable AWS service containing:
+### Lab 1 — Start a Local HTTP Server
+
+Terminal 1:
+
+```bash
+python3 -m http.server 8080 --bind 127.0.0.1
+```
+
+Terminal 2:
+
+```bash
+curl -v http://127.0.0.1:8080
+curl -I http://127.0.0.1:8080
+```
+
+Observe:
 
 ```text
-Hostname:
-Resolver:
-DNS status:
-DNS record type:
-Resolved IP:
-TTL:
-Route:
-TCP port:
-Listener:
-Security Group:
-Network ACL:
+TCP connection
+HTTP request
+HTTP response
+status code
+headers
+```
+
+**Goal:** See the difference between network connectivity and an HTTP response.
+
+---
+
+### Lab 2 — Explore HTTP Status Codes
+
+Use a test HTTP endpoint and run:
+
+```bash
+curl -I https://example.com
+curl -L -I https://example.com
+```
+
+Identify whether the response is `2xx`, `3xx`, `4xx`, or `5xx`.
+
+**Goal:** Learn to interpret HTTP status codes during incidents.
+
+---
+
+### Lab 3 — Compare HTTP and HTTPS
+
+Run:
+
+```bash
+curl -v http://example.com
+curl -v https://example.com
+```
+
+Observe that HTTPS adds TLS negotiation before HTTP application data.
+
+**Goal:** Understand where TLS sits in the connection flow.
+
+---
+
+### Lab 4 — Inspect TLS With `curl -v`
+
+Run:
+
+```bash
+curl -vvv https://example.com
+```
+
+Find these stages in the output:
+
+```text
+DNS resolution
+TCP connection
+TLS handshake
+certificate information
+HTTP request
+HTTP response
+```
+
+**Goal:** Identify the exact stage where a request stops.
+
+---
+
+### Lab 5 — Inspect the Certificate With OpenSSL
+
+Run:
+
+```bash
+openssl s_client -connect example.com:443 -servername example.com </dev/null
+```
+
+Inspect:
+
+```text
+TLS version
+cipher
+certificate subject
+SAN
+issuer
+certificate chain
+verification result
+```
+
+**Goal:** Build confidence diagnosing certificate and TLS problems independently of `curl`.
+
+---
+
+### Lab 6 — Demonstrate the Diagnostic Use of `-k`
+
+First run:
+
+```bash
+curl -v https://<test-host>
+```
+
+If certificate verification fails, compare:
+
+```bash
+curl -k -v https://<test-host>
+```
+
+**Goal:** Understand that `-k` can help prove that certificate validation is the problem, but it should not be used as the production fix.
+
+> Only perform this against a test endpoint you control or are authorized to troubleshoot.
+
+---
+
+### Lab 7 — Measure HTTP Request Stages
+
+Run:
+
+```bash
+curl -s -o /dev/null \
+  -w 'code=%{http_code} dns=%{time_namelookup}s connect=%{time_connect}s tls=%{time_appconnect}s total=%{time_total}s\n' \
+  https://example.com
+```
+
+**Goal:** Understand where request time is being spent.
+
+---
+
+### Lab 8 — AWS HTTPS Path
+
+For a test AWS architecture such as:
+
+```text
+Route 53 → ALB → Target Group → EC2 application
+```
+
+Test from a client:
+
+```bash
+dig +short api.example.com
+nc -vz api.example.com 443
+curl -v https://api.example.com/health
+```
+
+Then inspect:
+
+```text
+ALB listener :443
+certificate
+listener rules
+target group
+health status
+EC2 Security Group
+application listener
+```
+
+**Goal:** Understand that successful TLS to the ALB does not prove the backend application is healthy.
+
+---
+
+### Lab 9 — Realistic Failure Scenario: HTTPS 503
+
+Assume:
+
+```text
+https://api.example.com/health → 503
+```
+
+Prove each layer:
+
+```bash
+dig +short api.example.com
+nc -vz api.example.com 443
+curl -v https://api.example.com/health
+```
+
+If DNS and TCP succeed, TLS succeeds, and the response is:
+
+```text
+HTTP/1.1 503 Service Unavailable
+```
+
+investigate:
+
+```text
+ALB listener
+→ listener rules
+→ target group
+→ target health
+→ backend port
+→ application
+```
+
+**Example root cause:** Target group health check is configured for port `8081` while the application is listening on `8080`.
+
+**Goal:** Identify the first failed application/load-balancer layer rather than incorrectly blaming DNS or TLS.
+
+---
+
+### Lab 10 — Realistic Failure Scenario: Certificate Error
+
+Run:
+
+```bash
+curl -v https://api.example.com
+```
+
+If certificate validation fails, compare:
+
+```bash
+curl -k -v https://api.example.com
+```
+
+Then inspect:
+
+```bash
+openssl s_client -connect api.example.com:443 -servername api.example.com </dev/null
+```
+
+Check:
+
+```text
+hostname/SAN
+expiration
+issuer
+certificate chain
+verification result
+```
+
+**Goal:** Distinguish TCP connectivity, TLS negotiation, and certificate validation failures.
+
+---
+
+### DAY 3 Capstone — Diagnose One HTTPS Failure
+
+Given:
+
+```text
+https://api.example.com/health
+```
+
+produce an incident note:
+
+```text
+DNS:
+Destination IP:
+TCP/443:
+TLS handshake:
+Certificate:
+SNI:
+HTTP status:
+ALB/Ingress:
+Target health:
+Backend port:
 Application:
 Root cause:
 Evidence:
 ```
 
-**Success criteria:** You can clearly separate DNS resolution from the network and application path and explain how Route 53 fits into the architecture.
+**Success criteria:** Identify whether the first failure is DNS, TCP, TLS, certificate validation, HTTP, load balancer/proxy, backend, or application.
