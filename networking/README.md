@@ -22,6 +22,7 @@ DAY numbering starts at `DAY 1` independently for Networking.
 - [DAY 1 - TCP/IP, Ports, Sockets and ss/netstat Troubleshooting](DAY%201%20-%20tcp-ip-ports-sockets-ss-netstat-troubleshooting.md) — TCP/IP basics, ports, sockets, `ip`, `ss`, `netstat`, `ping`, `traceroute`, `dig`, `nslookup`, TCP testing, and Linux/AWS connectivity troubleshooting.
 - [DAY 2 - DNS Resolution, dig, nslookup and Route 53](DAY%202%20-%20DNS-resolution-dig-nslookup-route53.md) — DNS resolution, record types, `dig`, `nslookup`, TTL, delegation, Route 53 hosted zones, routing policies, private DNS, and DNS troubleshooting.
 - [DAY 3 - HTTP/HTTPS, TLS Handshake and curl Troubleshooting](DAY%203%20-%20HTTP-HTTPS-TLS-curl-troubleshooting.md) — HTTP fundamentals, HTTPS, TLS handshake, certificates, SNI, `curl`, `openssl s_client`, AWS load balancer HTTPS paths, and production troubleshooting.
+- [DAY 4 - Load Balancing: L4 vs L7 and Common Failure Paths](DAY%204%20-%20load-balancing-l4-l7-failure-paths.md) — L4 vs L7, AWS ALB/NLB concepts, listeners, target groups, health checks, TLS termination, backend connectivity, Kubernetes load-balancing paths, and common 502/503/504 failure scenarios.
 
 ## Centralized Resources
 
