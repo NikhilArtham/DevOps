@@ -469,3 +469,298 @@ Evidence:
 ```
 
 **Success criteria:** Identify whether the first failure is DNS, TCP, TLS, certificate validation, HTTP, load balancer/proxy, backend, or application.
+
+---
+
+## DAY 4 — Load Balancing: L4 vs L7 and Common Failure Paths
+
+### Lab 1 — Identify the Load-Balancing Layer
+
+For each example, decide whether the routing decision is primarily L4 or L7:
+
+```text
+1. TCP/443 → backend pool
+2. api.example.com → API target group
+3. /payments/* → payment service
+4. UDP/53 → DNS backend pool
+```
+
+Expected reasoning:
+
+```text
+TCP/443 → L4
+Host/path routing → L7
+UDP/53 → L4
+```
+
+**Goal:** Learn to classify a load-balancing problem by what information the load balancer needs to inspect.
+
+---
+
+### Lab 2 — Inspect a Local Backend Listener
+
+Start a test server:
+
+```bash
+python3 -m http.server 8080 --bind 0.0.0.0
+```
+
+Inspect it:
+
+```bash
+sudo ss -lntp | grep ':8080'
+curl -v http://127.0.0.1:8080
+```
+
+**Goal:** Connect the load-balancer backend concept to a real listening process and port.
+
+---
+
+### Lab 3 — Demonstrate a Backend Port Mismatch
+
+Run an application on port `8080`, but imagine the target group is configured for `8081`.
+
+Verify the actual listener:
+
+```bash
+sudo ss -lntp | grep ':8080'
+nc -vz 127.0.0.1 8080
+nc -vz 127.0.0.1 8081
+```
+
+Document:
+
+```text
+Configured target port:
+Actual application port:
+Health-check result:
+Expected LB behavior:
+```
+
+**Goal:** Recognize a common reason for unhealthy targets and HTTP 503 responses.
+
+---
+
+### Lab 4 — Demonstrate Loopback Binding Failure
+
+Start a server bound only to loopback:
+
+```bash
+python3 -m http.server 8080 --bind 127.0.0.1
+```
+
+Check:
+
+```bash
+sudo ss -lntp | grep ':8080'
+curl http://127.0.0.1:8080
+```
+
+Then reason about why another host cannot connect to the instance's private IP.
+
+**Goal:** Understand the difference between “application is running” and “application is reachable by the load balancer.”
+
+---
+
+### Lab 5 — AWS ALB Request Path
+
+For a test AWS environment:
+
+```text
+Client
+ ↓
+ALB :443
+ ↓
+Listener rule
+ ↓
+Target group :8080
+ ↓
+EC2 application
+```
+
+Inspect:
+
+```text
+ALB listener
+Listener rules
+Target group
+Target health
+Target port
+EC2 Security Group
+Application listener
+```
+
+From a client, test:
+
+```bash
+dig +short api.example.com
+nc -vz api.example.com 443
+curl -v https://api.example.com/health
+```
+
+**Goal:** Understand the complete client-to-backend path.
+
+---
+
+### Lab 6 — L7 Host and Path Routing
+
+Using a test ALB, create two simple backend services and route using concepts such as:
+
+```text
+api.example.com/* → API target group
+admin.example.com/* → Admin target group
+```
+
+or:
+
+```text
+/api/* → API target group
+/admin/* → Admin target group
+```
+
+Verify with:
+
+```bash
+curl -v https://api.example.com/health
+curl -v https://api.example.com/api/users
+```
+
+**Goal:** Understand why host/path routing is an L7 capability.
+
+---
+
+### Lab 7 — Target Health Investigation
+
+When a target is unhealthy, check the configured:
+
+```text
+Health-check protocol
+Health-check port
+Health-check path
+Expected success codes
+Timeout
+Interval
+```
+
+On the backend, verify:
+
+```bash
+sudo ss -lntp
+curl -v http://127.0.0.1:<port>/<health-path>
+nc -vz <private-ip> <port>
+```
+
+**Goal:** Prove whether the health-check failure is caused by the application, port, protocol, path, or network controls.
+
+---
+
+### Lab 8 — ALB Security Group vs Backend Security Group
+
+For:
+
+```text
+Internet → ALB:443 → EC2:8080
+```
+
+Verify the intended security model:
+
+```text
+ALB SG:
+  inbound 443 from approved clients
+
+EC2 SG:
+  inbound 8080 from ALB SG
+```
+
+**Goal:** Understand the difference between client-to-LB access and LB-to-backend access.
+
+---
+
+### Lab 9 — 503 Failure Scenario
+
+Simulate or document:
+
+```text
+DNS ✓
+TCP/443 ✓
+TLS ✓
+HTTP → 503
+```
+
+Investigate in this order:
+
+```text
+Listener
+→ listener rule
+→ target group
+→ target health
+→ backend port
+→ Security Group
+→ application
+```
+
+Example root cause:
+
+```text
+Application → 8080
+Target group → 8081
+```
+
+**Goal:** Find the first failed LB/backend layer instead of blaming DNS or TLS.
+
+---
+
+### Lab 10 — Intermittent Failure From One Bad Target
+
+Assume:
+
+```text
+Target A → healthy
+Target B → healthy
+Target C → unhealthy
+```
+
+Compare the healthy and unhealthy target configurations:
+
+```text
+Listening port
+Bind address
+Health endpoint
+Application logs
+CPU/memory
+Security Group
+```
+
+**Goal:** Understand why an application can be intermittently successful when only one backend is unhealthy.
+
+---
+
+### DAY 4 Capstone — Diagnose a Load-Balancer Incident
+
+Given:
+
+```text
+https://api.example.com/orders
+```
+
+produce an incident report:
+
+```text
+DNS:
+Load balancer type:
+L4/L7:
+Listener:
+TLS termination point:
+Listener rule:
+Target group:
+Target health:
+Backend port:
+Backend bind address:
+Security Group:
+Application:
+HTTP status:
+Root cause:
+Evidence:
+```
+
+**Success criteria:** Identify the first failed layer and explain why the failure is L4/network-level, L7/load-balancer-level, backend-level, or application-level.
