@@ -197,3 +197,225 @@ Why reflog helped:
 ```
 
 **Success criteria:** Explain and demonstrate how Git objects, refs, HEAD, and reflog work together to recover lost-looking work.
+
+---
+
+## DAY 2 — Git Branching, Merge vs Rebase and Conflict Recovery
+
+### Lab 1 — Create and Visualize Branches
+
+```bash
+mkdir git-branching-lab
+cd git-branching-lab
+git init
+echo "base" > app.txt
+git add app.txt
+git commit -m "Initial commit"
+git switch -c feature/payment
+echo "payment" >> app.txt
+git add app.txt
+git commit -m "Add payment feature"
+git log --oneline --decorate --graph --all
+```
+
+**Goal:** See that a branch is a movable ref pointing to a commit.
+
+---
+
+### Lab 2 — Fast-Forward Merge
+
+```bash
+git switch main
+git merge feature/payment
+git log --oneline --decorate --graph --all
+```
+
+**Goal:** Observe a fast-forward merge where Git only moves the `main` ref forward.
+
+---
+
+### Lab 3 — Three-Way Merge
+
+Create two branches from the same base and make independent changes:
+
+```bash
+git switch main
+git switch -c feature-a
+echo "line-a" >> app.txt
+git add app.txt
+git commit -m "Feature A"
+
+git switch main
+git switch -c feature-b
+echo "line-b" >> app.txt
+git add app.txt
+git commit -m "Feature B"
+```
+
+Merge one feature into `main`, then the other:
+
+```bash
+git switch main
+git merge feature-a
+git merge feature-b
+git log --oneline --decorate --graph --all
+```
+
+**Goal:** Understand when Git creates a merge commit because both histories moved independently.
+
+---
+
+### Lab 4 — Rebase a Feature Branch
+
+Create divergent history:
+
+```bash
+git switch main
+git switch -c feature/rebase
+echo "feature" >> app.txt
+git add app.txt
+git commit -m "Feature change"
+
+git switch main
+echo "main" >> app.txt
+git add app.txt
+git commit -m "Main change"
+```
+
+Rebase:
+
+```bash
+git switch feature/rebase
+git rebase main
+git log --oneline --decorate --graph --all
+```
+
+**Goal:** Observe that the feature commit is replayed on the new base and receives a new commit ID.
+
+---
+
+### Lab 5 — Trigger and Resolve a Merge Conflict
+
+Create conflicting changes to the same line:
+
+```bash
+git switch main
+git switch -c feature/conflict
+echo "port=9090" > config.txt
+git add config.txt
+git commit -m "Use port 9090"
+
+git switch main
+echo "port=8080" > config.txt
+git add config.txt
+git commit -m "Use port 8080"
+```
+
+Merge:
+
+```bash
+git merge feature/conflict
+git status
+git diff
+```
+
+Edit `config.txt` into the correct final state, remove all conflict markers, then:
+
+```bash
+git add config.txt
+git commit
+```
+
+**Goal:** Practice the complete merge conflict lifecycle.
+
+---
+
+### Lab 6 — Resolve a Rebase Conflict
+
+Create conflicting commits, then run:
+
+```bash
+git rebase main
+```
+
+If Git stops:
+
+```bash
+git status
+git diff
+git add <resolved-file>
+git rebase --continue
+```
+
+If the operation should be abandoned:
+
+```bash
+git rebase --abort
+```
+
+**Goal:** Understand that rebase may stop repeatedly because commits are replayed one at a time.
+
+---
+
+### Lab 7 — Inspect Branch Divergence
+
+```bash
+git log --oneline --decorate --graph --all
+git merge-base main feature/payment
+git log --oneline main..feature/payment
+git log --oneline feature/payment..main
+git diff main...feature/payment
+```
+
+**Goal:** Identify the common ancestor, commits unique to each side, and the net change introduced by the feature branch.
+
+---
+
+### Lab 8 — Safe Recovery After a Rebase Mistake
+
+Before a destructive rebase, record the current state:
+
+```bash
+git branch backup-before-rebase
+git reflog
+```
+
+If the result is wrong, inspect:
+
+```bash
+git reflog
+git log --oneline --all --decorate
+```
+
+Create a recovery ref if needed:
+
+```bash
+git switch -c recovery/rebase <known-good-commit>
+```
+
+**Goal:** Combine DAY 1 reflog knowledge with DAY 2 history rewriting.
+
+---
+
+### DAY 2 Capstone — Production Configuration Conflict
+
+Simulate a feature branch and `main` changing the same deployment configuration. Rebase the feature onto `main`, intentionally create a conflict, and recover it.
+
+Incident note:
+
+```text
+Current branch:
+Operation: merge or rebase:
+Conflict file:
+What both sides changed:
+Correct application behavior:
+Resolution chosen:
+Validation performed:
+Continue command:
+Abort command:
+Final commit graph:
+Push command if history was rewritten:
+Why --force-with-lease is safer than --force:
+```
+
+**Success criteria:** Resolve the conflict correctly, validate the resulting configuration, explain merge vs rebase, and recover safely if the operation is wrong.
