@@ -119,7 +119,7 @@ git log --oneline
 git reflog
 ```
 
-**Goal:** Observe that `git log` follows current reachable history while reflog records local ref movement.
+**Goal:** Observe that `git log` follows current reachable history while reflog records ref movement.
 
 ---
 
@@ -419,3 +419,212 @@ Why --force-with-lease is safer than --force:
 ```
 
 **Success criteria:** Resolve the conflict correctly, validate the resulting configuration, explain merge vs rebase, and recover safely if the operation is wrong.
+
+---
+
+## DAY 3 — Pull Requests, Code Review and Clean Commit History
+
+### Lab 1 — Create a PR-Ready Branch
+
+```bash
+git switch main
+git pull --ff-only origin main
+git switch -c feature/payment-health-check
+```
+
+Make a small change and create a meaningful commit:
+
+```bash
+git add .
+git commit -m "Add payment health check"
+git push -u origin feature/payment-health-check
+```
+
+**Goal:** Practice the basic branch → commit → push → PR flow.
+
+---
+
+### Lab 2 — Inspect What a PR Will Change
+
+Before opening a PR, inspect the branch locally:
+
+```bash
+git status -sb
+git log --oneline main..HEAD
+git diff main...HEAD
+git log --oneline --decorate --graph --all
+```
+
+**Goal:** Know exactly which commits and final changes you are asking reviewers to approve.
+
+---
+
+### Lab 3 — Practice Review-Quality Commits
+
+Create several commits such as:
+
+```text
+Add payment health check
+fix typo
+fix review comment
+fix test
+```
+
+Then inspect:
+
+```bash
+git log --oneline -n 10
+```
+
+Discuss whether each commit represents a meaningful logical change.
+
+**Goal:** Learn to distinguish useful commits from review noise.
+
+---
+
+### Lab 4 — Squash Review Noise with Interactive Rebase
+
+```bash
+git rebase -i HEAD~4
+```
+
+Example:
+
+```text
+pick   A Add payment health check
+fixup  B fix typo
+fixup  C fix review comment
+fixup  D fix test
+```
+
+Save and inspect:
+
+```bash
+git log --oneline --decorate --graph
+```
+
+**Goal:** Turn review-fix commits into one logical commit.
+
+---
+
+### Lab 5 — Reword a Commit
+
+```bash
+git rebase -i HEAD~3
+```
+
+Change one `pick` to:
+
+```text
+reword
+```
+
+Enter a better message and verify:
+
+```bash
+git log --oneline -n 5
+```
+
+**Goal:** Practice improving commit messages without changing the actual file content.
+
+---
+
+### Lab 6 — Amend the Latest Commit
+
+```bash
+echo "extra validation" >> app.txt
+git add app.txt
+git commit --amend -m "Add payment health check"
+```
+
+Inspect:
+
+```bash
+git log --oneline -n 3
+```
+
+**Goal:** Understand how `--amend` changes the latest commit and therefore its commit ID.
+
+---
+
+### Lab 7 — Review an Infrastructure Diff
+
+Create a sample Terraform or Kubernetes change and inspect only the final diff:
+
+```bash
+git fetch origin
+git diff origin/main...HEAD
+```
+
+For Terraform, perform the repository's normal validation/plan workflow. For Kubernetes, validate the manifest using the tools available in your environment.
+
+Review specifically for:
+
+```text
+IAM permissions
+Security Groups
+replicas
+resource limits
+ports
+health checks
+selectors
+Route 53 records
+ALB rules
+```
+
+**Goal:** Practice reviewing operational impact rather than only syntax.
+
+---
+
+### Lab 8 — Branch Protection / PR Safety Exercise
+
+Using a test repository or an existing non-production repository, configure or simulate rules such as:
+
+```text
+PR required
+approval required
+status checks required
+no direct push to main
+```
+
+Then attempt a direct change to `main` and observe the repository policy.
+
+**Goal:** Understand how repository controls turn the PR process into an enforceable safety gate.
+
+---
+
+### DAY 3 Capstone — Dangerous IAM Change Hidden by a Clean History
+
+Simulate a PR with several messy commits, then squash them into one clean commit. Introduce an overly broad IAM permission during the exercise.
+
+Before merge, use:
+
+```bash
+git fetch origin
+git diff origin/main...HEAD
+```
+
+Identify the dangerous permission, fix it, run:
+
+```bash
+terraform fmt -check
+terraform validate
+terraform plan
+```
+
+Then document:
+
+```text
+PR purpose:
+Source branch:
+Base branch:
+Original commits:
+Cleaned commits:
+Risky change found:
+Why commit history alone was insufficient:
+Final diff reviewed:
+Validation performed:
+Reviewer checks required:
+```
+
+**Success criteria:** Demonstrate that a clean history improves reviewability but the final diff, CI checks, and operational impact still determine whether a PR is safe.
