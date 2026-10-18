@@ -628,3 +628,344 @@ Reviewer checks required:
 ```
 
 **Success criteria:** Demonstrate that a clean history improves reviewability but the final diff, CI checks, and operational impact still determine whether a PR is safe.
+
+---
+
+## DAY 4 — Git Reset, Revert, Cherry-pick and Recovery Lab
+
+### Lab 1 — Compare Reset Modes
+
+Create three commits:
+
+```bash
+mkdir git-reset-lab
+cd git-reset-lab
+git init
+echo "A" > app.txt
+git add app.txt
+git commit -m "Commit A"
+echo "B" >> app.txt
+git add app.txt
+git commit -m "Commit B"
+echo "C" >> app.txt
+git add app.txt
+git commit -m "Commit C"
+git log --oneline --decorate --graph
+```
+
+Create a backup branch before experimenting:
+
+```bash
+git branch backup-before-reset
+```
+
+Now practice each mode separately in disposable copies or restore from the backup branch.
+
+```bash
+git reset --soft HEAD~1
+git status
+```
+
+Observe that the branch moved but the removed commit's changes remain staged.
+
+Then practice:
+
+```bash
+git reset --mixed HEAD~1
+git status
+```
+
+Observe that the changes remain in the working tree but are unstaged.
+
+Finally, in a disposable copy:
+
+```bash
+git reset --hard HEAD~1
+git status
+```
+
+Observe that the branch, index, and working tree now match the target commit.
+
+**Goal:** Understand exactly what `--soft`, `--mixed`, and `--hard` change.
+
+---
+
+### Lab 2 — Safely Revert a Bad Commit
+
+Create a bad configuration commit:
+
+```bash
+echo "replicas: 0" > deployment-config.txt
+git add deployment-config.txt
+git commit -m "Break deployment replicas"
+```
+
+Inspect it:
+
+```bash
+git show --stat HEAD
+git log --oneline --decorate -n 5
+```
+
+Undo it without rewriting history:
+
+```bash
+git revert HEAD
+```
+
+Inspect the resulting history:
+
+```bash
+git log --oneline --decorate --graph -n 5
+git show HEAD
+```
+
+**Goal:** See that revert creates a new commit instead of moving the branch backward.
+
+---
+
+### Lab 3 — Cherry-pick a Targeted Hotfix
+
+Create a hotfix branch:
+
+```bash
+git switch -c hotfix/payment-timeout
+```
+
+Make and commit one focused change:
+
+```bash
+echo "timeout: 30" > payment-hotfix.txt
+git add payment-hotfix.txt
+git commit -m "Fix payment timeout"
+```
+
+Record the commit:
+
+```bash
+git rev-parse HEAD
+```
+
+Switch to a separate release branch:
+
+```bash
+git switch -c release/1.0
+```
+
+Apply only that commit:
+
+```bash
+git cherry-pick <hotfix-commit>
+```
+
+Inspect:
+
+```bash
+git log --oneline --decorate --graph --all
+```
+
+**Goal:** Understand how a specific fix can be copied without merging unrelated branch work.
+
+---
+
+### Lab 4 — Resolve a Cherry-pick Conflict
+
+Create different changes to the same line on two branches, then cherry-pick the commit across branches:
+
+```bash
+git status
+git cherry-pick <commit>
+```
+
+If Git reports a conflict:
+
+```bash
+git status
+git diff
+```
+
+Resolve the file, then:
+
+```bash
+git add <resolved-file>
+git cherry-pick --continue
+```
+
+If you decide not to apply the commit:
+
+```bash
+git cherry-pick --abort
+```
+
+**Goal:** Practice the complete cherry-pick conflict lifecycle.
+
+---
+
+### Lab 5 — Recover from an Accidental Hard Reset
+
+Create:
+
+```text
+A → B → C → D
+```
+
+Then intentionally run:
+
+```bash
+git reset --hard HEAD~2
+```
+
+Do not make additional destructive changes.
+
+Recover the old position:
+
+```bash
+git reflog
+```
+
+Inspect the candidate:
+
+```bash
+git show <old-head>
+```
+
+Create a recovery branch:
+
+```bash
+git switch -c recovery/hard-reset <old-head>
+```
+
+Compare:
+
+```bash
+git log --oneline --decorate --graph --all
+git diff main...recovery/hard-reset
+```
+
+**Goal:** Use reflog and a recovery ref instead of guessing at lost work.
+
+---
+
+### Lab 6 — Recover an Accidentally Deleted Branch
+
+Create a feature branch and commit work:
+
+```bash
+git switch -c feature/recovery-test
+echo "important" > recovery.txt
+git add recovery.txt
+git commit -m "Add important recovery work"
+```
+
+Delete the branch:
+
+```bash
+git switch main
+git branch -D feature/recovery-test
+```
+
+Find the old branch tip:
+
+```bash
+git reflog --all
+```
+
+Recover it:
+
+```bash
+git switch -c recovery/deleted-branch <commit-id>
+```
+
+**Goal:** Understand that deleting a branch deletes the ref, not necessarily the underlying commit immediately.
+
+---
+
+### Lab 7 — Inspect Before Choosing Reset, Revert or Cherry-pick
+
+For a simulated incident, collect:
+
+```bash
+git status
+git branch --show-current
+git log --oneline --decorate --graph -n 10
+git reflog -n 10
+git show <suspect-commit>
+```
+
+Then answer:
+
+```text
+Is the commit shared?
+Do we need to preserve existing history?
+Do we need to undo one commit?
+Do we need one commit on another branch?
+Could the operation affect CI/CD or production?
+```
+
+Choose:
+
+```text
+reset      → private/local history correction
+revert     → shared rollback
+cherry-pick → targeted commit transfer
+reflog     → recovery investigation
+```
+
+**Goal:** Practice choosing the operation based on operational impact rather than memorizing commands.
+
+---
+
+### DAY 4 Capstone — Production Kubernetes Rollback and Hotfix Recovery
+
+Simulate:
+
+```text
+main: A → B → C
+```
+
+where `C` introduces a broken Kubernetes deployment.
+
+Perform the incident safely:
+
+```text
+1. Inspect the bad commit.
+2. Confirm the branch is shared.
+3. Revert the bad commit.
+4. Validate the Kubernetes configuration.
+5. Create a focused hotfix on another branch.
+6. Cherry-pick only the required hotfix into the release branch.
+7. Simulate a cherry-pick conflict and recover it.
+8. Record the final commit graph.
+```
+
+Suggested validation commands:
+
+```bash
+git show <bad-commit>
+git revert <bad-commit>
+kubectl diff -f deployment.yaml
+kubectl apply --dry-run=server -f deployment.yaml
+git log --oneline --decorate --graph --all
+git reflog -n 10
+```
+
+Incident note:
+
+```text
+Production branch:
+Bad commit:
+Why it was unsafe:
+Rollback method:
+Rollback commit:
+Kubernetes validation:
+Hotfix commit:
+Cherry-picked commit:
+Conflict encountered:
+Conflict resolution:
+Final branch graph:
+Why reset was not used on shared production history:
+Why cherry-pick was appropriate for the targeted fix:
+Recovery method if history was accidentally reset:
+```
+
+**Success criteria:** Explain and demonstrate reset, revert, cherry-pick, and reflog-based recovery; choose the safest operation for the branch state; and validate the resulting DevOps configuration before deployment.
