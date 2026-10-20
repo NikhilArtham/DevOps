@@ -129,7 +129,7 @@ Then identify the expected path:
 Private instance
 → private route table
 → NAT Gateway
-→ public subnet route table
+→ public route table
 → Internet Gateway
 → Internet
 ```
@@ -213,3 +213,271 @@ Security controls
 ```
 
 **Success criteria:** Explain the traffic path, identify the missing/broken component, and validate the fix without randomly changing security rules.
+
+---
+
+## DAY 2 — Route Tables, IGW, NAT Gateway and VPC Endpoints
+
+### Lab 1 — Map a Complete Route Path
+
+Choose an EC2 instance and identify:
+
+```text
+Instance
+↓
+Subnet
+↓
+Associated Route Table
+↓
+Matching Route
+↓
+Next Hop
+```
+
+Commands:
+
+```bash
+aws ec2 describe-instances --instance-ids i-xxxxxxxx
+aws ec2 describe-route-tables --route-table-ids rtb-xxxxxxxx
+```
+
+For these destinations, write the expected next hop:
+
+```text
+10.0.5.20
+8.8.8.8
+AWS service endpoint
+```
+
+**Goal:** Learn to reason from destination → matching route → next hop.
+
+---
+
+### Lab 2 — Public Subnet + IGW
+
+Inspect a public subnet and prove whether it has an internet path.
+
+Check for:
+
+```text
+0.0.0.0/0 → Internet Gateway
+```
+
+Commands:
+
+```bash
+aws ec2 describe-route-tables
+aws ec2 describe-internet-gateways
+aws ec2 describe-subnets
+```
+
+Draw:
+
+```text
+EC2
+↓
+Public subnet
+↓
+Route table
+↓
+IGW
+↓
+Internet
+```
+
+**Goal:** Understand why an IGW alone is not enough.
+
+---
+
+### Lab 3 — Private Subnet + NAT Gateway
+
+Find a private subnet and trace its outbound internet path.
+
+Verify:
+
+```text
+Private route table:
+0.0.0.0/0 → NAT Gateway
+```
+
+Then verify the NAT Gateway's subnet route table has:
+
+```text
+0.0.0.0/0 → IGW
+```
+
+Commands:
+
+```bash
+aws ec2 describe-nat-gateways
+aws ec2 describe-route-tables
+```
+
+**Goal:** Prove the two-hop design instead of assuming that a NAT Gateway automatically provides connectivity.
+
+---
+
+### Lab 4 — Gateway VPC Endpoint for S3/DynamoDB
+
+In a test VPC, inspect gateway endpoints:
+
+```bash
+aws ec2 describe-vpc-endpoints
+```
+
+Identify:
+
+```text
+Endpoint ID
+Service
+Type
+Route tables
+State
+```
+
+For an S3 or DynamoDB gateway endpoint, inspect the associated route table and identify the prefix-list route targeting the endpoint.
+
+Draw:
+
+```text
+Private EC2
+↓
+Route Table
+↓
+Prefix List → Gateway Endpoint
+↓
+S3 / DynamoDB
+```
+
+**Goal:** Understand that gateway endpoints integrate with route tables.
+
+---
+
+### Lab 5 — Interface VPC Endpoint
+
+Inspect an interface endpoint:
+
+```bash
+aws ec2 describe-vpc-endpoints \
+  --query 'VpcEndpoints[?VpcEndpointType==`Interface`].{Id:VpcEndpointId,Service:ServiceName,State:State,Subnets:SubnetIds,SGs:Groups}'
+```
+
+Identify:
+
+```text
+Endpoint service
+Endpoint subnets
+Endpoint Security Group
+Endpoint ENIs
+Private DNS setting
+```
+
+Then test DNS resolution from a workload in the VPC if you have access.
+
+Useful commands:
+
+```bash
+getent hosts <service-endpoint-hostname>
+curl -v https://<service-endpoint-hostname>
+```
+
+**Goal:** Understand the ENI + PrivateLink model.
+
+---
+
+### Lab 6 — Endpoint vs NAT Decision Exercise
+
+For each destination, choose the best expected path and explain why:
+
+```text
+Public website
+S3
+DynamoDB
+Supported AWS API through interface endpoint
+Another VPC workload
+```
+
+Example reasoning:
+
+```text
+Public website → NAT/IGW path
+S3 → gateway endpoint where appropriate
+DynamoDB → gateway endpoint where appropriate
+AWS service with interface endpoint → interface endpoint
+VPC workload → local/VPC routing
+```
+
+**Goal:** Stop treating NAT, IGW, and endpoints as interchangeable components.
+
+---
+
+### Lab 7 — Diagnose an Endpoint Connectivity Failure
+
+Use this checklist for an interface endpoint failure:
+
+```text
+1. Is the endpoint service supported?
+2. Is endpoint state available?
+3. Is the endpoint deployed in the required subnet/AZ?
+4. Is Private DNS configured as intended?
+5. Does DNS resolve to private endpoint addresses?
+6. Does the endpoint Security Group allow the source traffic?
+7. Are NACLs blocking traffic?
+8. Is the application using the expected hostname/port?
+```
+
+For a gateway endpoint, additionally check:
+
+```text
+Route table association
+Prefix-list route
+Endpoint policy
+```
+
+**Goal:** Diagnose endpoint failures at the correct layer.
+
+---
+
+### DAY 2 Capstone — Private Workload with NAT + VPC Endpoint
+
+Use or design:
+
+```text
+VPC: 10.0.0.0/16
+
+Public subnet
+ └── NAT Gateway
+
+Private subnet
+ └── EC2 / workload
+
+Route tables
+ ├── Public: 0.0.0.0/0 → IGW
+ └── Private: 0.0.0.0/0 → NAT
+
+VPC Endpoint
+ └── Private access to a supported AWS service
+```
+
+Simulate this incident:
+
+```text
+AWS service access works
+Public internet access fails
+```
+
+Prove whether the workload is using:
+
+```text
+VPC Endpoint
+```
+
+for the AWS service while lacking:
+
+```text
+0.0.0.0/0 → NAT Gateway
+```
+
+for general internet traffic.
+
+**Success criteria:** Explain why one destination works and another fails, identify the matching routes, identify the next hops, and fix the correct networking component without randomly opening Security Groups.
