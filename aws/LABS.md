@@ -481,3 +481,274 @@ for the AWS service while lacking:
 for general internet traffic.
 
 **Success criteria:** Explain why one destination works and another fails, identify the matching routes, identify the next hops, and fix the correct networking component without randomly opening Security Groups.
+
+---
+
+## DAY 3 — Security Groups vs NACLs: Stateful vs Stateless Troubleshooting
+
+### Lab 1 — Build a Minimal SG + NACL Terraform Configuration
+
+Create a small Terraform configuration containing:
+
+```text
+VPC
+Subnet
+Security Group
+Network ACL
+NACL inbound rule
+NACL outbound rule
+```
+
+Use explicit resource names such as:
+
+```text
+aws_security_group.web
+aws_network_acl.private
+aws_network_acl_rule.https_in
+aws_network_acl_rule.https_out
+```
+
+Run:
+
+```bash
+terraform fmt
+terraform validate
+terraform plan
+```
+
+**Goal:** Understand the Terraform resource graph before applying network controls.
+
+---
+
+### Lab 2 — Inspect Exact Terraform Resource Addresses
+
+After creating the configuration, run:
+
+```bash
+terraform state list
+```
+
+Then inspect each address:
+
+```bash
+terraform state show aws_security_group.web
+terraform state show aws_network_acl.private
+terraform state show aws_network_acl_rule.https_in
+terraform state show aws_network_acl_rule.https_out
+```
+
+Record:
+
+```text
+Resource address:
+AWS resource ID:
+Subnet/VPC relationship:
+Rule number:
+Direction:
+Protocol:
+Port range:
+CIDR/source:
+```
+
+**Goal:** Become comfortable moving from Terraform resource address → state → AWS resource.
+
+---
+
+### Lab 3 — Prove Security Group Stateful Behavior
+
+In a controlled test environment, allow a client to connect to a test service through the Security Group.
+
+Observe:
+
+```text
+Inbound connection allowed
+        ↓
+Response traffic succeeds
+```
+
+Inspect the SG configuration and explain why a separate response rule is not required in the same way as a stateless NACL rule.
+
+**Goal:** Understand connection tracking instead of memorizing the word "stateful."
+
+---
+
+### Lab 4 — Prove NACL Stateless Behavior
+
+Use a test subnet with an explicit NACL.
+
+Allow the inbound test connection but intentionally make the outbound response rule incompatible with the connection.
+
+Expected symptom:
+
+```text
+Client → server
+may reach the subnet
+
+Server → client
+response blocked
+
+Client
+→ timeout
+```
+
+Restore the outbound rule and verify the connection.
+
+**Goal:** See the practical difference between stateful SGs and stateless NACLs.
+
+---
+
+### Lab 5 — Compare SG and NACL Failure Modes
+
+Create four controlled cases:
+
+```text
+Case A: Route missing
+Case B: SG blocks
+Case C: Inbound NACL blocks
+Case D: Outbound NACL blocks response
+```
+
+For each case record:
+
+```text
+Source
+Destination
+Port
+Route result
+NACL result
+SG result
+Observed symptom
+Root cause
+Fix
+```
+
+Use:
+
+```bash
+nc -vz <destination-ip> <port>
+curl -v http://<destination-ip>:<port>
+```
+
+**Goal:** Stop treating every timeout as a Security Group problem.
+
+---
+
+### Lab 6 — Terraform Plan and Drift Exercise
+
+Create a known-good Terraform configuration.
+
+Run:
+
+```bash
+terraform plan
+```
+
+Then inspect:
+
+```bash
+terraform state list
+terraform state show aws_security_group.web
+terraform state show aws_network_acl_rule.https_out
+```
+
+In a permitted test environment, make a controlled console-side change to a Terraform-managed rule.
+
+Then run:
+
+```bash
+terraform plan
+```
+
+Record:
+
+```text
+Expected configuration:
+Terraform state:
+Actual AWS configuration:
+Detected drift:
+Planned correction:
+```
+
+**Goal:** Learn to distinguish configuration, state, and real infrastructure.
+
+---
+
+### Lab 7 — Safe Recovery from a Bad NACL Change
+
+Simulate a production-style incident where an outbound NACL rule is changed incorrectly.
+
+Workflow:
+
+```text
+1. Identify affected workload
+2. Confirm route is correct
+3. Inspect NACL
+4. Identify Terraform resource address
+5. Inspect state
+6. Reproduce/confirm the bad rule
+7. Revert the Terraform configuration
+8. terraform fmt
+9. terraform validate
+10. terraform plan
+11. Review exact changes
+12. Apply through the approved workflow
+13. Test connectivity
+```
+
+**Do not use `terraform destroy` as the recovery method.**
+
+**Goal:** Practice controlled infrastructure recovery.
+
+---
+
+### DAY 3 Capstone — Stateful vs Stateless Production Failure
+
+Architecture:
+
+```text
+Client
+  ↓
+ALB
+  ↓
+EC2 private subnet
+  ↓
+Application :443
+```
+
+Simulate this incident:
+
+```text
+HTTPS requests time out
+Route is correct
+Security Group is correct
+Application is listening
+```
+
+Investigate and prove whether the failure is:
+
+```text
+Inbound NACL
+or
+Outbound NACL
+```
+
+Then recover through Terraform.
+
+Final incident report:
+
+```text
+Source:
+Destination:
+Protocol/port:
+Route table:
+NACL:
+SG:
+Terraform resource address:
+Terraform state:
+Root cause:
+Recovery change:
+terraform plan result:
+Validation result:
+```
+
+**Success criteria:** Explain exactly why the connection failed, identify the stateful/stateless behavior involved, identify the exact Terraform resource address, recover safely, and validate the application path.
