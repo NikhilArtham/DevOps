@@ -1,6 +1,6 @@
 # AWS
 
-AWS notes for DevOps work, written beginner-first and focused on architecture, troubleshooting, production scenarios, and interview readiness.
+AWS notes for DevOps work, written beginner-first and focused on architecture, troubleshooting, production scenarios, Terraform implementation, and interview readiness.
 
 ## Study Structure
 
@@ -17,6 +17,7 @@ DAY numbering starts at `DAY 1` independently for AWS.
 
 - [DAY 1 - AWS VPC Architecture: CIDR, Subnets and Traffic Flow](DAY%201%20-%20AWS%20VPC%20Architecture%20CIDR%20Subnets%20and%20Traffic%20Flow.md) — VPC fundamentals, CIDR planning, subnet design, route tables, public/private subnets, Internet Gateway, NAT Gateway, Security Groups, NACLs, traffic flow, AWS CLI inspection, EKS connection, and a realistic private-subnet connectivity failure.
 - [DAY 2 - Route Tables, IGW, NAT Gateway and VPC Endpoints](DAY%202%20-%20Route%20Tables%20IGW%20NAT%20Gateway%20and%20VPC%20Endpoints.md) — route matching, Internet Gateway, NAT Gateway, gateway/interface VPC endpoints, AWS CLI inspection, private AWS service access, EKS connection, and a realistic route-table failure.
+- [DAY 3 - Security Groups vs NACLs: Stateful vs Stateless Troubleshooting](DAY%203%20-%20Security%20Groups%20vs%20NACLs%20Stateful%20vs%20Stateless%20Troubleshooting.md) — stateful vs stateless filtering, SG/NACL failure paths, AWS CLI inspection, Terraform resource addresses, plan/state inspection, drift detection, safe recovery, EKS connection, and a realistic NACL return-traffic failure.
 
 ## Centralized Resources
 
