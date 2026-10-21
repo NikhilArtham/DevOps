@@ -249,3 +249,127 @@ Assuming that creating a VPC endpoint provides general internet connectivity. An
 <details><summary>Answer</summary>
 A route table decides where traffic goes. An Internet Gateway provides the VPC path to the public internet for appropriately configured public resources. A NAT Gateway provides outbound internet access for private resources without direct inbound internet exposure. A VPC endpoint provides private connectivity to supported AWS services or endpoint services. In production troubleshooting I identify the source subnet, find its route table, find the most specific destination route, identify the next hop, and then validate the IGW, NAT, endpoint, DNS, and security controls involved.
 </details>
+
+---
+
+## DAY 3 — Security Groups vs NACLs: Stateful vs Stateless Troubleshooting
+
+### 1. What is the main difference between a Security Group and a Network ACL?
+
+<details><summary>Answer</summary>
+A Security Group is a stateful firewall associated with network interfaces/resources, while a Network ACL is a stateless firewall associated with a subnet. SGs primarily use allow rules; NACLs support both allow and deny rules.
+</details>
+
+### 2. What does stateful mean for a Security Group?
+
+<details><summary>Answer</summary>
+Stateful means the Security Group tracks connection state. When an allowed connection is established, return traffic for that connection is automatically handled without requiring a separate reverse rule in the same way a stateless firewall would.
+</details>
+
+### 3. What does stateless mean for a NACL?
+
+<details><summary>Answer</summary>
+Stateless means the NACL evaluates inbound and outbound traffic independently. If inbound traffic is allowed, the return traffic still needs an appropriate outbound rule.
+</details>
+
+### 4. At what level does a Security Group operate?
+
+<details><summary>Answer</summary>
+A Security Group is associated with network interfaces and therefore controls traffic at the resource/network-interface level.
+</details>
+
+### 5. At what level does a NACL operate?
+
+<details><summary>Answer</summary>
+A Network ACL is associated with a subnet, so its rules apply to traffic entering and leaving that subnet.
+</details>
+
+### 6. Can a Security Group explicitly deny traffic?
+
+<details><summary>Answer</summary>
+No. Security Groups are allow-based. If traffic is not allowed by the applicable SG rules, it is denied by the implicit behavior of the Security Group.
+</details>
+
+### 7. Can a NACL explicitly deny traffic?
+
+<details><summary>Answer</summary>
+Yes. NACLs support explicit ALLOW and DENY rules and evaluate them in rule-number order, with the first matching rule taking effect.
+</details>
+
+### 8. Why can an inbound NACL rule be correct while the connection still times out?
+
+<details><summary>Answer</summary>
+Because NACLs are stateless. The response traffic must also be allowed by the outbound NACL rules. A blocked response can produce a timeout even when the inbound request was allowed.
+</details>
+
+### 9. Does a Security Group create a network route?
+
+<details><summary>Answer</summary>
+No. A route table determines the network path. Security Groups only control whether applicable traffic is allowed at the resource/network-interface level.
+</details>
+
+### 10. What is the typical troubleshooting order for an AWS connection failure?
+
+<details><summary>Answer</summary>
+Start with DNS and routing, then inspect NACLs and Security Groups, followed by the host firewall, application listener, and application health. This prevents changing security rules when the actual problem is routing or the application itself.
+</details>
+
+### 11. What is a common symptom of a blocked Security Group rule?
+
+<details><summary>Answer</summary>
+A TCP connection can fail because the traffic never becomes allowed at the destination network interface. Depending on the path, the client commonly experiences a timeout rather than an application-level response.
+</details>
+
+### 12. Why are NACL rule numbers important?
+
+<details><summary>Answer</summary>
+NACL rules are evaluated from the lowest rule number upward, and the first matching rule is applied. A broad deny with a lower number can therefore prevent a later allow rule from being reached.
+</details>
+
+### 13. What should you inspect when an NACL is suspected?
+
+<details><summary>Answer</summary>
+Identify the source and destination, protocol and port, source/destination subnets, inbound NACL rules, outbound NACL rules, and rule ordering. Because NACLs are stateless, inspect both directions.
+</details>
+
+### 14. How do you inspect Security Groups and NACLs using AWS CLI?
+
+<details><summary>Answer</summary>
+Use `aws ec2 describe-security-groups` for Security Groups and `aws ec2 describe-network-acls` for NACLs. You can filter NACLs by subnet association when investigating a specific workload.
+</details>
+
+### 15. What Terraform resource addresses are useful for this topic?
+
+<details><summary>Answer</summary>
+For example: `aws_security_group.web`, `aws_network_acl.private`, `aws_network_acl_rule.https_in`, and `aws_network_acl_rule.https_out`. Exact addresses matter when using `terraform state show` and when tracing a change back to code.
+</details>
+
+### 16. How do you inspect the exact Terraform state for a Security Group?
+
+<details><summary>Answer</summary>
+Run `terraform state list` to find the address, then use `terraform state show aws_security_group.web` or the exact address returned by `state list`.
+</details>
+
+### 17. What is configuration drift in Terraform?
+
+<details><summary>Answer</summary>
+Drift occurs when the real infrastructure changes outside the Terraform configuration/state expectation. Running `terraform plan` can reveal differences between the desired configuration and the infrastructure Terraform observes.
+</details>
+
+### 18. What should you do when Terraform detects a security-rule drift in production?
+
+<details><summary>Answer</summary>
+Do not immediately apply. Determine what changed, whether it was intentional, whether Terraform should own the new state, and what impact restoring the declared configuration could have. Then update code if appropriate, review `terraform plan`, and use the approved deployment workflow.
+</details>
+
+### 19. A Terraform change causes HTTPS timeouts. Route and SG are correct. What should you investigate?
+
+<details><summary>Answer</summary>
+Inspect the subnet NACL in both directions, including rule numbers and port ranges. A common stateless-firewall failure is allowing the inbound connection but blocking the return traffic with the outbound NACL.
+</details>
+
+### 20. Explain SG vs NACL in one minute.
+
+<details><summary>Answer</summary>
+A Security Group is a stateful resource-level firewall. It primarily allows traffic and tracks connection state, so return traffic is automatically handled for an allowed connection. A NACL is a stateless subnet-level firewall with ordered allow and deny rules, so inbound and outbound traffic must be evaluated independently. During troubleshooting I first verify DNS and routing, then NACLs and Security Groups, and finally the host and application. With Terraform I identify the exact resource address, inspect state, review the plan, and recover changes through controlled code rather than random console edits.
+</details>
