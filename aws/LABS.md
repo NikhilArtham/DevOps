@@ -752,3 +752,576 @@ Validation result:
 ```
 
 **Success criteria:** Explain exactly why the connection failed, identify the stateful/stateless behavior involved, identify the exact Terraform resource address, recover safely, and validate the application path.
+
+---
+
+## DAY 4 — ALB vs NLB: Listeners, Target Health and Routing
+
+### Lab 1 — Identify ALB vs NLB Architecture
+
+Inspect load balancers:
+
+```bash
+aws elbv2 describe-load-balancers
+```
+
+For each load balancer record:
+
+```text
+Load balancer:
+Type: ALB / NLB
+Scheme:
+VPC:
+Availability Zones:
+DNS name:
+```
+
+Explain whether the workload needs:
+
+```text
+Layer 7 HTTP/HTTPS routing
+```
+
+or:
+
+```text
+Layer 4 TCP/UDP/TLS behavior
+```
+
+**Goal:** Choose the load-balancer mental model before troubleshooting details.
+
+---
+
+### Lab 2 — Inspect Listeners
+
+For an ALB/NLB, run:
+
+```bash
+aws elbv2 describe-listeners \
+  --load-balancer-arn <load-balancer-arn>
+```
+
+Record:
+
+```text
+Protocol:
+Port:
+Default action:
+Certificate, if applicable:
+Target group:
+```
+
+**Goal:** Prove whether the expected listener exists on the expected port.
+
+---
+
+### Lab 3 — Inspect ALB Listener Rules
+
+For an HTTPS ALB listener:
+
+```bash
+aws elbv2 describe-rules \
+  --listener-arn <listener-arn>
+```
+
+Build a routing map:
+
+```text
+Host/path condition
+↓
+Rule priority
+↓
+Target group
+```
+
+Test at least two requests that should route to different target groups.
+
+**Goal:** Understand why a healthy target in the wrong target group does not fix an application request.
+
+---
+
+### Lab 4 — Inspect Target Groups and Health
+
+```bash
+aws elbv2 describe-target-groups
+```
+
+Then:
+
+```bash
+aws elbv2 describe-target-health \
+  --target-group-arn <target-group-arn>
+```
+
+Record:
+
+```text
+Target:
+Port:
+Health state:
+Reason:
+Description:
+Health-check protocol:
+Health-check path:
+```
+
+**Goal:** Connect listener → target group → target health.
+
+---
+
+### Lab 5 — Trace an Unhealthy ALB Target
+
+Use a controlled target group where the application exposes a test health endpoint.
+
+On the target:
+
+```bash
+ss -lntp
+curl -v http://127.0.0.1:<port>/health
+curl -v http://<private-ip>:<port>/health
+```
+
+Compare the results with the ALB target health.
+
+Investigate:
+
+```text
+Wrong port
+Wrong path
+Wrong expected response
+Application not listening
+Loopback-only bind
+Security Group
+NACL
+```
+
+**Goal:** Diagnose target health at the backend instead of randomly changing the ALB.
+
+---
+
+### Lab 6 — ALB vs NLB Failure Comparison
+
+Create or analyze these cases:
+
+```text
+Case A: ALB listener missing
+Case B: ALB rule sends traffic to wrong target group
+Case C: ALB has zero healthy targets
+Case D: NLB TCP listener reaches an unhealthy application
+Case E: Backend port mismatch
+Case F: Target Security Group blocks load-balancer traffic
+```
+
+For each case record:
+
+```text
+Layer:
+Expected path:
+Observed symptom:
+AWS object involved:
+Root cause:
+Validation command:
+Fix:
+```
+
+**Goal:** Learn to map symptoms to the correct load-balancer layer.
+
+---
+
+### Lab 7 — AWS CLI Load Balancer Investigation
+
+Run:
+
+```bash
+aws elbv2 describe-load-balancers
+aws elbv2 describe-listeners --load-balancer-arn <load-balancer-arn>
+aws elbv2 describe-rules --listener-arn <listener-arn>
+aws elbv2 describe-target-groups
+aws elbv2 describe-target-health --target-group-arn <target-group-arn>
+```
+
+Build this incident map:
+
+```text
+Load balancer:
+Listener:
+Rule:
+Target group:
+Target:
+Target port:
+Health state:
+Health reason:
+```
+
+**Goal:** Become comfortable investigating load balancers without relying only on the AWS console.
+
+---
+
+### DAY 4 Capstone — ALB 503 Production Failure
+
+Architecture:
+
+```text
+Client
+ ↓
+Route 53
+ ↓
+ALB HTTPS :443
+ ↓
+/api/* rule
+ ↓
+API target group
+ ↓
+EC2 :8080
+```
+
+Incident:
+
+```text
+Users receive 503
+```
+
+Investigate in this order:
+
+```text
+1. ALB availability
+2. HTTPS listener
+3. Listener rule
+4. Target group
+5. Target health
+6. Health-check path/response
+7. Target port
+8. Security Group
+9. NACL
+10. Application listener
+```
+
+Expected failure scenario:
+
+```text
+Target health = unhealthy
+Reason = Target.ResponseCodeMismatch
+/health = 401 Unauthorized
+```
+
+Identify why the ALB marks the target unhealthy and recover by correcting the health-check design rather than randomly opening network access.
+
+**Success criteria:** Explain why the listener can be healthy while the application returns 503, identify the exact failing layer, validate target health, and prove the fix.
+
+---
+
+## DAY 5 — Route 53: Records, Health Checks and DNS Troubleshooting
+
+### Lab 1 — Inspect Route 53 Hosted Zones and Records
+
+Run:
+
+```bash
+aws route53 list-hosted-zones
+```
+
+Then inspect records:
+
+```bash
+aws route53 list-resource-record-sets \
+  --hosted-zone-id <hosted-zone-id>
+```
+
+For selected records, record:
+
+```text
+Name:
+Type:
+TTL:
+Routing policy:
+Alias target / value:
+Health-check association, if any:
+```
+
+Classify each record as:
+
+```text
+A
+AAAA
+CNAME
+MX
+TXT
+NS
+Alias
+```
+
+**Goal:** Understand what Route 53 is configured to return before troubleshooting the network path.
+
+---
+
+### Lab 2 — Compare `dig` and `nslookup`
+
+Test the same hostname:
+
+```bash
+dig api.example.com
+dig +short api.example.com
+nslookup api.example.com
+```
+
+Record:
+
+```text
+Returned IP/hostname:
+Record type:
+TTL:
+Resolver:
+```
+
+Then query a specific resolver:
+
+```bash
+dig @8.8.8.8 api.example.com
+```
+
+**Goal:** Separate what Route 53 is configured to serve from what a recursive resolver is returning.
+
+---
+
+### Lab 3 — Trace DNS Delegation
+
+Run:
+
+```bash
+dig +trace api.example.com
+```
+
+Identify:
+
+```text
+Root
+↓
+TLD
+↓
+Authoritative name servers
+↓
+Final answer
+```
+
+If the trace fails, identify the stage where the delegation or authoritative response breaks.
+
+**Goal:** Understand where DNS resolution can fail instead of treating DNS as one black box.
+
+---
+
+### Lab 4 — Test A vs AAAA Paths
+
+Run:
+
+```bash
+dig +short api.example.com A
+dig +short api.example.com AAAA
+```
+
+If both exist, test:
+
+```bash
+curl -4 -v https://api.example.com
+curl -6 -v https://api.example.com
+```
+
+Record:
+
+```text
+IPv4 answer:
+IPv6 answer:
+IPv4 result:
+IPv6 result:
+```
+
+**Goal:** Detect cases where DNS is correct but one IP family has a broken network/application path.
+
+---
+
+### Lab 5 — Separate DNS, Routing and Port Failures
+
+Use one reachable service and intentionally analyze each layer:
+
+```text
+1. DNS
+2. Route
+3. TCP port
+4. Firewall / SG / NACL
+5. TLS
+6. HTTP
+```
+
+Commands:
+
+```bash
+dig +short api.example.com
+ip route get <destination-ip>
+ping <destination-ip>
+nc -vz <destination-ip> 443
+curl -v https://api.example.com
+```
+
+For a TLS investigation:
+
+```bash
+openssl s_client \
+  -connect <destination-ip>:443 \
+  -servername api.example.com
+```
+
+Create a result table:
+
+```text
+Layer:
+Command:
+Result:
+Pass/Fail:
+Likely issue:
+```
+
+**Goal:** Stop treating every unreachable service as a DNS problem.
+
+---
+
+### Lab 6 — Route 53 Health Check Investigation
+
+Inspect health checks:
+
+```bash
+aws route53 list-health-checks
+```
+
+Then:
+
+```bash
+aws route53 get-health-check \
+  --health-check-id <health-check-id>
+```
+
+Check status:
+
+```bash
+aws route53 get-health-check-status \
+  --health-check-id <health-check-id>
+```
+
+Record:
+
+```text
+Protocol:
+Endpoint:
+Port:
+Path:
+Failure threshold:
+Health state:
+```
+
+Then test the health-check endpoint yourself with `curl`.
+
+**Goal:** Verify whether the health check actually represents service health and whether its path/port/protocol can succeed.
+
+---
+
+### Lab 7 — Public vs Private Route 53 Troubleshooting
+
+For a public hostname, test:
+
+```bash
+dig api.example.com
+dig @8.8.8.8 api.example.com
+```
+
+For a private hostname from an associated VPC workload, test:
+
+```bash
+dig api.internal.example.com
+getent hosts api.internal.example.com
+```
+
+Determine whether the name is expected to resolve publicly or privately.
+
+Check the hosted-zone/VPC relationship where applicable.
+
+**Goal:** Avoid troubleshooting a private DNS name through the wrong resolver path.
+
+---
+
+### Lab 8 — Route 53 + ALB Failure Investigation
+
+Use this architecture:
+
+```text
+Client
+ ↓
+Route 53
+ ↓
+ALB :443
+ ↓
+Target Group
+ ↓
+EC2 :8080
+```
+
+Simulate or diagnose one of these:
+
+```text
+DNS resolves but TCP 443 times out
+DNS resolves and TCP works but ALB returns 503
+DNS returns an unexpected ALB
+Health check is unhealthy
+```
+
+Use:
+
+```bash
+dig +short api.example.com
+ip route get <returned-ip>
+nc -vz <returned-ip> 443
+curl -v https://api.example.com
+aws elbv2 describe-target-health --target-group-arn <target-group-arn>
+```
+
+**Goal:** Identify whether the failure belongs to Route 53, routing, the load balancer, target health, or the application.
+
+---
+
+### DAY 5 Capstone — Intermittent DNS-Based Production Failure
+
+Architecture:
+
+```text
+api.example.com
+      ↓
+Route 53 weighted records
+ ├── 90% → ALB-A
+ └── 10% → ALB-B
+```
+
+Incident:
+
+```text
+Users report intermittent failures.
+```
+
+Investigation:
+
+```text
+1. Run dig and identify returned destinations.
+2. Test each returned endpoint independently.
+3. Inspect Route 53 routing configuration.
+4. Inspect health-check associations.
+5. Inspect ALB-B target health.
+6. Trace the failing target to its backend port.
+7. Test the backend health endpoint.
+8. Identify whether DNS, routing, port, firewall, TLS, or application health is the failing layer.
+```
+
+Expected scenario:
+
+```text
+ALB-A → healthy
+ALB-B → targets unhealthy
+ALB-B /health → 401 Unauthorized
+```
+
+**Success criteria:** Explain why DNS can be working while users still experience failures, identify the unhealthy destination, trace the complete path using `dig`, `ip`, `ss`, `nc`, `curl`, and AWS CLI, and fix the actual failing layer without randomly changing Security Groups or DNS records.
