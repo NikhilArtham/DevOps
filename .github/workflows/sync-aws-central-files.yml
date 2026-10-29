@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - 'aws/DAY 11 - RDS HA Backups Multi-AZ and Connection Troubleshooting.md'
+      - '.github/aws-sync-trigger'
 permissions:
   contents: write
 jobs:
