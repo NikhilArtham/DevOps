@@ -162,24 +162,24 @@
 
 <details><summary>1. What is a Bash variable?</summary>A named shell value assigned with `name=value`.</details>
 <details><summary>2. Why quote variables?</summary>To preserve argument boundaries and reduce word-splitting/special-character problems.</details>
-<details><summary>3. What is $?</summary>Variable/parameter expansion syntax; for example `$name` expands a variable.</details>
-<details><summary>4. What does $?</summary>`$?` contains the previous command's exit status.</details>
+<details><summary>3. What is command substitution?</summary>`$(command)` runs a command and substitutes its output.</details>
+<details><summary>4. What is `$?`?</summary>It contains the previous command's exit status.</details>
 <details><summary>5. What does exit 0 mean?</summary>Successful completion by convention.</details>
 <details><summary>6. return vs exit?</summary>`return` exits a function; `exit` terminates the script.</details>
 <details><summary>7. What is $1?</summary>The first positional argument.</details>
 <details><summary>8. What is "$@"?</summary>All positional arguments while preserving each argument boundary.</details>
-<details><summary>9. What is command substitution?</summary>`$(command)` runs a command and substitutes its output.</details>
-<details><summary>10. What does export do?</summary>Makes a variable available to child processes.</details>
-<details><summary>11. for vs while?</summary>`for` iterates over items/counters; `while` repeats while a condition remains true.</details>
-<details><summary>12. What is a Bash function?</summary>A reusable block of shell logic that can accept arguments and return a status.</details>
-<details><summary>13. Why use local?</summary>To scope a function variable and avoid unintended changes outside the function.</details>
-<details><summary>14. What does set -euo pipefail mean?</summary>Failure handling, unset-variable protection and pipeline failure propagation.</details>
-<details><summary>15. Is set -e a universal error handler?</summary>No. Bash has contexts where `set -e` does not behave like a global exception handler.</details>
-<details><summary>16. && vs ;?</summary>`&&` requires previous success; `;` runs the next command regardless of previous status.</details>
-<details><summary>17. How check Bash syntax?</summary>`bash -n script.sh`.</details>
-<details><summary>18. How trace a script?</summary>`bash -x script.sh`.</details>
-<details><summary>19. Why are exit codes important in CI/CD?</summary>Automation uses them to decide whether a step succeeded or failed.</details>
-<details><summary>20. What makes production Bash reliable?</summary>Validation, quoting, explicit checks, safe error handling, useful logs and accurate exit codes.</details>
+<details><summary>9. What is export?</summary>It makes a variable available to child processes.</details>
+<details><summary>10. for vs while?</summary>`for` iterates over items/counters; `while` repeats while a condition remains true.</details>
+<details><summary>11. What is a Bash function?</summary>A reusable block of shell logic that can accept arguments and return a status.</details>
+<details><summary>12. Why use local?</summary>To scope a function variable and avoid unintended changes outside the function.</details>
+<details><summary>13. What does set -euo pipefail mean?</summary>Failure handling, unset-variable protection and pipeline failure propagation.</details>
+<details><summary>14. Is set -e a universal error handler?</summary>No. Bash has contexts where `set -e` does not behave like a global exception handler.</details>
+<details><summary>15. && vs ;?</summary>`&&` requires previous success; `;` runs the next command regardless of previous status.</details>
+<details><summary>16. How check Bash syntax?</summary>`bash -n script.sh`.</details>
+<details><summary>17. How trace a script?</summary>`bash -x script.sh`.</details>
+<details><summary>18. Why are exit codes important in CI/CD?</summary>Automation uses them to decide whether a step succeeded or failed.</details>
+<details><summary>19. What makes production Bash reliable?</summary>Validation, quoting, explicit checks, safe error handling, useful logs and accurate exit codes.</details>
+<details><summary>20. What is the danger of assuming manual and automated execution have the same environment?</summary>Schedulers and CI runners may use different users, PATHs, working directories, variables and credentials.</details>
 
 ---
 
@@ -196,15 +196,15 @@
 <details><summary>9. Why is set -e not enough?</summary>It has Bash-specific contexts and is not a universal exception mechanism.</details>
 <details><summary>10. What is pipefail?</summary>It makes pipeline status reflect earlier command failures.</details>
 <details><summary>11. Why validate arguments?</summary>To prevent missing/unsafe input from causing incorrect or destructive automation.</details>
-<details><summary>12. What is a common meaning of exit 2?</summary>Incorrect usage or invalid arguments, by common convention.</details>
-<details><summary>13. Why use flock?</summary>To prevent multiple instances of the same automation from running concurrently.</details>
-<details><summary>14. Why is a lock file alone unreliable?</summary>A stale file can remain after a crash; `flock` represents an actual held lock.</details>
-<details><summary>15. Why use Bash arrays?</summary>They preserve argument boundaries and reduce quoting/word-splitting problems.</details>
-<details><summary>16. How log the failing line?</summary>Use an ERR trap with `$LINENO` and `$BASH_COMMAND`.</details>
-<details><summary>17. Deployment fails after stopping the service. What should you consider?</summary>Cleanup, recovery, rollback and whether validation could happen before stopping the live service.</details>
-<details><summary>18. How handle AWS CLI failures?</summary>Check the command status, log the failure, stop unsafe follow-up work and return non-zero.</details>
-<details><summary>19. How do traps help long-running jobs?</summary>They allow graceful signal handling and cleanup.</details>
-<details><summary>20. What makes Bash automation production-safe?</summary>Validation, quoting, explicit error handling, cleanup, locking where needed, logging, recovery planning and accurate exit codes.</details>
+<details><summary>12. Why use flock?</summary>To prevent multiple instances of the same automation from running concurrently.</details>
+<details><summary>13. Why is a lock file alone unreliable?</summary>A stale file can remain after a crash; `flock` represents an actual held lock.</details>
+<details><summary>14. How log the failing line?</summary>Use an ERR trap with `$LINENO` and `$BASH_COMMAND`.</details>
+<details><summary>15. Deployment fails after stopping the service. What should you consider?</summary>Cleanup, recovery, rollback and whether validation could happen before stopping the live service.</details>
+<details><summary>16. How handle AWS CLI failures?</summary>Check the command status, log the failure, stop unsafe follow-up work and return non-zero.</details>
+<details><summary>17. How do traps help long-running jobs?</summary>They allow graceful signal handling and cleanup.</details>
+<details><summary>18. What makes Bash automation production-safe?</summary>Validation, quoting, explicit error handling, cleanup, locking where needed, logging, recovery planning and accurate exit codes.</details>
+<details><summary>19. Why should cleanup be idempotent?</summary>It may run during multiple exit paths, so repeating cleanup should not create a new failure.</details>
+<details><summary>20. What should a deployment script do after a failed change?</summary>Stop unsafe follow-up actions, preserve useful evidence, return a failure status and invoke the approved recovery/rollback path.</details>
 
 ---
 
@@ -215,21 +215,21 @@
 <details><summary>3. How list a crontab?</summary>`crontab -l`.</details>
 <details><summary>4. What does crontab -r do?</summary>Removes the current user's entire crontab.</details>
 <details><summary>5. What are cron's five fields?</summary>Minute, hour, day-of-month, month, day-of-week.</details>
-<details><summary>6. What does */15 mean?</summary>Every 15 units of that field, such as every 15 minutes when in the minute field.</details>
-<details><summary>7. Why can cron jobs work manually but fail under cron?</summary>The environment differs: PATH, working directory, variables, user and terminal.</details>
-<details><summary>8. Why use absolute paths in cron?</summary>To avoid PATH and working-directory assumptions.</details>
-<details><summary>9. How capture cron output?</summary>Redirect stdout/stderr, e.g. `>> /var/log/job.log 2>&1`.</details>
-<details><summary>10. Where are system cron configurations?</summary>Common locations include `/etc/crontab` and `/etc/cron.d/`, plus periodic directories.</details>
-<details><summary>11. Cron vs systemd timers?</summary>Cron is simple/portable; systemd timers integrate with services, dependencies and journald.</details>
-<details><summary>12. What does a systemd timer trigger?</summary>Normally a corresponding `.service` unit.</details>
-<details><summary>13. What is Type=oneshot?</summary>A service type intended for work that runs and exits.</details>
-<details><summary>14. What does OnCalendar do?</summary>Defines a calendar/time-based schedule.</details>
-<details><summary>15. What does Persistent=true do?</summary>Allows a missed calendar event to be handled after the timer becomes active again.</details>
-<details><summary>16. OnBootSec vs OnUnitActiveSec?</summary>They schedule relative to boot versus relative to the last activation of the associated unit.</details>
-<details><summary>17. How inspect timers?</summary>`systemctl list-timers --all` and `systemctl status timer`.</details>
-<details><summary>18. Timer triggers but job fails. What do you inspect?</summary>The `.service` status and `journalctl -u service`.</details>
-<details><summary>19. How prevent overlapping scheduled jobs?</summary>Use mechanisms such as `flock` and design the job to be idempotent where possible.</details>
-<details><summary>20. What is the scheduled-automation troubleshooting chain?</summary>Scheduler → trigger → environment → permissions → command → exit status → expected result.</details>
+<details><summary>6. Why can cron jobs work manually but fail under cron?</summary>The environment differs: PATH, working directory, variables, user and terminal.</details>
+<details><summary>7. Why use absolute paths in cron?</summary>To avoid PATH and working-directory assumptions.</details>
+<details><summary>8. How capture cron output?</summary>Redirect stdout/stderr, e.g. `>> /var/log/job.log 2>&1`.</details>
+<details><summary>9. Cron vs systemd timers?</summary>Cron is simple/portable; systemd timers integrate with services, dependencies and journald.</details>
+<details><summary>10. What does a systemd timer trigger?</summary>Normally a corresponding `.service` unit.</details>
+<details><summary>11. What is Type=oneshot?</summary>A service type intended for work that runs and exits.</details>
+<details><summary>12. What does OnCalendar do?</summary>Defines a calendar/time-based schedule.</details>
+<details><summary>13. What does Persistent=true do?</summary>Allows a missed calendar event to be handled after the timer becomes active again.</details>
+<details><summary>14. OnBootSec vs OnUnitActiveSec?</summary>They schedule relative to boot versus relative to the last activation of the associated unit.</details>
+<details><summary>15. How inspect timers?</summary>`systemctl list-timers --all` and `systemctl status timer`.</details>
+<details><summary>16. Timer triggers but job fails. What do you inspect?</summary>The `.service` status and `journalctl -u service`.</details>
+<details><summary>17. How prevent overlapping scheduled jobs?</summary>Use mechanisms such as `flock` and design the job to be idempotent where possible.</details>
+<details><summary>18. What is the scheduled-automation troubleshooting chain?</summary>Scheduler → trigger → environment → permissions → command → exit status → expected result.</details>
+<details><summary>19. Why can a timer be active while the job is failing?</summary>The timer and service are separate units; the timer can successfully trigger a service that then exits unsuccessfully.</details>
+<details><summary>20. What evidence proves a scheduled job failed?</summary>The scheduler/timer state plus the service exit state and service journal for the relevant execution window.</details>
 
 ---
 
@@ -255,6 +255,26 @@
 <details><summary>18. What should you check when a tunnel fails?</summary>SSH connectivity, local listener, destination reachability from the SSH server, destination service and security controls.</details>
 <details><summary>19. SSH vs AWS IAM?</summary>IAM authorizes AWS API actions; SSH authenticates and authorizes access to the Linux OS.</details>
 <details><summary>20. What is the SSH troubleshooting mental model?</summary>`REACH → LISTEN → AUTHENTICATE → AUTHORIZE → SESSION → APPLICATION`; classify the failing layer before changing configuration.</details>
+
+---
+
+## 📅 DAY 11 — October Production Troubleshooting + Monthly Mock Interview
+
+<details><summary>1. A Linux service is active but users cannot connect. What do you check?</summary>Do not equate active with reachable. Check the service status and logs, verify the expected listening socket with `ss -lntp`, confirm the bind address and port, then check host/network controls and dependencies. Identify the first failed layer before changing anything.</details>
+<details><summary>2. What is the difference between df and du, including the deleted-open-file case?</summary>`df` reports filesystem-level allocated/used space; `du` calculates usage from directory entries. If a large file is deleted while a process still has it open, `df` can remain high while `du` no longer shows that file. `lsof +L1` can identify such files.</details>
+<details><summary>3. A process consumes 100% CPU. How do you investigate safely?</summary>Identify the PID with `top`/`ps`, inspect command/user/state, correlate the timing with application logs and recent changes, determine whether the load is expected, then remediate according to the application runbook. Avoid `kill -9` as the first response because it skips graceful cleanup.</details>
+<details><summary>4. Why can a systemd service fail after a successful deployment?</summary>The deployment can succeed while runtime configuration fails: missing environment variables, wrong permissions, missing files, a port conflict, dependency failure, bad ExecStart or an application startup error. `systemctl status`, `systemctl cat` and `journalctl -u` provide evidence.</details>
+<details><summary>5. Why can cron work manually but fail when scheduled?</summary>Cron can run with a different user, PATH, working directory, environment variables, credentials and shell context. Use absolute paths, explicit environment/configuration, correct permissions and captured stdout/stderr.</details>
+<details><summary>6. An EC2 instance cannot reach the internet. What is your investigation order?</summary>Identify the instance/subnet, inspect the associated route table, verify the expected IGW or NAT path, then inspect NACL/Security Group controls, DNS and the destination. For private instances, confirm the default route targets a working NAT Gateway when public internet access is required.</details>
+<details><summary>7. An ALB returns 503. What does that tell you?</summary>It does not automatically mean the server is down. Investigate listener/rule selection, target-group membership and target health, health-check path/port, target SG reachability and whether the application is actually listening/responding. An unhealthy target set is a common cause.</details>
+<details><summary>8. An application gets S3 AccessDenied. How do you isolate the policy layer?</summary>Identify the caller with STS, then inspect identity policy, bucket/resource policy, explicit denies, SCPs, permissions boundaries and session policies. Verify the bucket/object ARN and policy conditions. If SSE-KMS is involved, separately verify KMS authorization.</details>
+<details><summary>9. EC2 cannot connect to RDS on 5432. What evidence separates DNS, network and authentication?</summary>`dig`/`getent hosts` tests name resolution. `nc -vz <endpoint> 5432` tests TCP reachability. If TCP succeeds but the database rejects credentials, the network path is working and the investigation moves to authentication/authorization. A TCP timeout points back toward routing or network controls.</details>
+<details><summary>10. How do you prove an AWS change caused an incident?</summary>Use CloudWatch to establish the behavioral timeline—metrics, alarms, target health and errors—then use CloudTrail to identify AWS API activity, principal, resource and request parameters around the same time. Correlate the change with the first symptom and validate that the changed configuration explains the observed failure. Time correlation alone is not proof.</details>
+<details><summary>11. Users report intermittent failures. What do you establish first?</summary>Establish scope, affected resources/users, exact start and end times, error patterns, frequency, dependency impact and recent changes. Then compare metrics and logs across the incident window instead of restarting components without evidence.</details>
+<details><summary>12. What makes a troubleshooting hypothesis strong?</summary>It explains the observed symptom, predicts evidence that should exist if the hypothesis is true, can be tested without unnecessary risk and can be falsified. A good hypothesis narrows the investigation rather than creating more guesses.</details>
+<details><summary>13. Is a recent configuration change automatically the root cause?</summary>No. A recent change is strong temporal evidence but not proof. Confirm that the change affected the relevant resource, that the timing matches the symptom, and that the changed behavior explains the failure.</details>
+<details><summary>14. Why avoid making many changes simultaneously during an incident?</summary>Multiple changes increase blast radius and can destroy causal evidence. If the incident improves, you may not know which change fixed it; if it worsens, rollback becomes harder. Prefer the smallest reversible change supported by evidence.</details>
+<details><summary>15. What belongs in a final incident summary?</summary>Impact, detection, timeline, evidence, root cause, remediation, validation and prevention/follow-up actions. The summary should distinguish facts proven by evidence from assumptions or contributing factors.</details>
 
 ---
 
