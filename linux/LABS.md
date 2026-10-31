@@ -709,6 +709,159 @@ NACL/firewall: traffic is permitted
 
 ---
 
+## 📅 DAY 11 — October Production Troubleshooting Lab + Monthly Mock Interview
+
+### Lab 1 — Linux service incident
+
+Scenario:
+
+```text
+Client → Load Balancer → EC2 → systemd → Application
+```
+
+Users report HTTP 503/connection failures after a deployment.
+
+Investigate:
+
+```bash
+systemctl status <service>
+systemctl is-active <service>
+systemctl cat <service>
+systemctl show <service> -p User -p Group -p ExecStart -p ActiveState -p SubState
+journalctl -u <service> --since "30 minutes ago" --no-pager
+ss -lntp | grep ':8080'
+```
+
+Determine whether the failure is systemd configuration, application crash, environment, permissions, port conflict, bind address, dependency or deployment artifact.
+
+Record:
+
+```text
+Symptom:
+Evidence:
+Failed layer:
+Root cause:
+Safe remediation:
+Validation:
+Prevention:
+```
+
+### Lab 2 — AWS EC2 → RDS connectivity incident
+
+Scenario:
+
+```text
+EC2 → RDS endpoint → PostgreSQL :5432
+```
+
+The application reports a connection timeout.
+
+Investigate in order:
+
+```bash
+dig <rds-endpoint>
+getent hosts <rds-endpoint>
+nc -vz <rds-endpoint> 5432
+aws rds describe-db-instances \
+  --db-instance-identifier <db-id> \
+  --query 'DBInstances[0].{Status:DBInstanceStatus,Endpoint:Endpoint.Address,Port:Endpoint.Port,MultiAZ:MultiAZ,AZ:AvailabilityZone}'
+```
+
+Classify the failure as DNS, route/network controls, RDS state, TCP connectivity or authentication. Do not make a broad `0.0.0.0/0` Security Group change.
+
+### Lab 3 — CloudWatch + CloudTrail incident correlation
+
+Scenario:
+
+```text
+10:12 — application healthy
+10:13 — AWS API configuration change
+10:14 — target health changes
+10:15 — ALB 503 alarm fires
+10:16 — users report failures
+```
+
+Investigate CloudWatch evidence such as:
+
+```text
+RequestCount
+HTTPCode_ELB_5XX_Count
+HTTPCode_Target_5XX_Count
+TargetResponseTime
+HealthyHostCount
+UnHealthyHostCount
+```
+
+Then inspect CloudTrail events for the affected resource/time window:
+
+```bash
+aws cloudtrail lookup-events \
+  --lookup-attributes AttributeKey=EventName,AttributeValue=<API_ACTION> \
+  --max-results 50
+```
+
+Record:
+
+```text
+Event time:
+Event name:
+Principal:
+Resource:
+Request parameters:
+Source IP:
+Observed application impact:
+Causal evidence:
+Operational action:
+Validation:
+```
+
+### Lab 4 — Monthly mock interview
+
+Without notes, answer aloud:
+
+1. A Linux service is active but users cannot connect. What do you check?
+2. What is the difference between `df` and `du`, including the deleted-open-file case?
+3. A process consumes 100% CPU. How do you investigate safely?
+4. Why can a systemd service fail after a successful deployment?
+5. Why can cron work manually but fail when scheduled?
+6. An EC2 instance cannot reach the internet. What is your investigation order?
+7. An ALB returns 503. What does that tell you?
+8. An application gets S3 `AccessDenied`. How do you isolate the policy layer?
+9. EC2 cannot connect to RDS on 5432. What evidence separates DNS, network and authentication?
+10. How do you prove an AWS change caused an incident?
+11. Users report intermittent failures. What do you establish first?
+12. What makes a troubleshooting hypothesis strong?
+13. Is a recent configuration change automatically the root cause?
+14. Why avoid making many changes simultaneously during an incident?
+15. What belongs in a final incident summary?
+
+Score each answer:
+
+```text
+2 = correct, concise, production-ready
+1 = partially correct
+0 = incorrect/guessed
+```
+
+For troubleshooting questions, add one point each for evidence-based reasoning and safe remediation/validation.
+
+### Lab 5 — Weak-question loop
+
+For every question scored 0 or 1, write:
+
+```text
+Question:
+My answer:
+What I missed:
+Technically correct explanation:
+Production example:
+Final concise answer:
+```
+
+Repeat the question aloud until the answer is concise and defensible without notes.
+
+---
+
 # 🎯 Final Capstone — Production Scheduling Incident
 
 ### Scenario
@@ -781,6 +934,7 @@ and identify exactly which layer failed.
 - [ ] DAY 8 — Bash error handling/traps
 - [ ] DAY 9 — Cron & systemd timers
 - [ ] DAY 10 — SSH keys, agent, tunneling & failures
+- [ ] DAY 11 — October production troubleshooting + monthly mock interview
 - [ ] Capstone — Production scheduling incident
 
 > **Future rule:** Every new Linux DAY will add its practical labs to this centralized workbook. No separate per-day LABS file will be created.
