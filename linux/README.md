@@ -96,6 +96,11 @@ SSH keys, `ssh-agent`, bastions, ProxyJump, tunneling and systematic SSH trouble
 
 [Open DAY 10](./DAY%2010%20-%20ssh-keys-agent-tunneling-failures.md)
 
+### DAY 11 — October Production Troubleshooting Lab & Monthly Mock Interview
+Linux/AWS incident investigation, evidence-based troubleshooting, EC2/RDS and ALB scenarios, CloudWatch/CloudTrail correlation, plus a 15-question monthly mock interview and weak-question repetition loop.
+
+[Open DAY 11](./DAY%2011%20-%20October%20Production%20Troubleshooting%20Lab%20and%20Monthly%20Mock%20Interview.md)
+
 ## 🔄 Rules for every future topic
 
 ### 1. Understand the topic before choosing the folder
