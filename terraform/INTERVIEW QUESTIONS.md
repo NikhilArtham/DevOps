@@ -73,3 +73,93 @@ Stop before applying. Inspect the provider constraint and lock-file change, comp
 Normally no. State is Terraform's mapping between resource addresses and real infrastructure. Drift should be investigated by comparing configuration, state, and real infrastructure. State manipulation is a specialized recovery operation, not a general solution for plan differences.
 
 </details>
+
+## DAY 2 — Variables, Locals, Outputs and Type Constraints
+
+### 10. What is a Terraform variable?
+
+<details><summary>Answer</summary>
+
+A variable is an input to a module. It lets callers provide values without hard-coding environment-specific configuration inside the module.
+
+</details>
+
+### 11. What is the difference between a variable and a local?
+
+<details><summary>Answer</summary>
+
+A variable is supplied to a module from outside. A local is an internally calculated or reusable value. Variables define the module's input interface; locals help organize internal expressions.
+
+</details>
+
+### 12. Why should you use type constraints?
+
+<details><summary>Answer</summary>
+
+Type constraints define the expected shape of module inputs, such as `string`, `number`, `list(string)`, or an object. They catch invalid inputs early and make modules easier to reuse safely.
+
+</details>
+
+### 13. What is the difference between a type constraint and variable validation?
+
+<details><summary>Answer</summary>
+
+The type constraint defines what kind of value is accepted. Validation applies additional rules to the value. For example, `type = string` allows strings, while validation can restrict the string to `dev`, `test`, or `prod`.
+
+</details>
+
+### 14. What is the difference between a list, set, and map in Terraform?
+
+<details><summary>Answer</summary>
+
+A list is ordered and can contain repeated values. A set is an unordered collection of unique values. A map stores key-value pairs, commonly with a consistent value type such as `map(string)`.
+
+</details>
+
+### 15. How do outputs work between child and root modules?
+
+<details><summary>Answer</summary>
+
+A child module declares an output, and the parent accesses it with `module.<module_name>.<output_name>`. If the value must appear in `terraform output` for the root module, the root module must declare its own output that references the child output.
+
+</details>
+
+### 16. Do variables, locals, or outputs create AWS resources?
+
+<details><summary>Answer</summary>
+
+No. They are Terraform language constructs. Resources such as `aws_s3_bucket` create or manage AWS infrastructure. Variables provide values, locals calculate values, and outputs expose selected results.
+
+</details>
+
+### 17. What happens if a number variable receives a string such as `"three"`?
+
+<details><summary>Answer</summary>
+
+Terraform reports a type error because the value does not satisfy `type = number`. The correct response is to fix the input at its source rather than weakening the module's type constraint just to make the plan succeed.
+
+</details>
+
+### 18. Does `sensitive = true` on an output remove the secret from Terraform state?
+
+<details><summary>Answer</summary>
+
+No. It mainly prevents Terraform from displaying the value normally in CLI output and plans. Sensitive values can still exist in state, so state storage and access must be secured.
+
+</details>
+
+### 19. Which commands are useful for troubleshooting variables and locals?
+
+<details><summary>Answer</summary>
+
+Use `terraform validate` for configuration checks, `terraform plan` to evaluate the resulting changes, `terraform console` to test expressions and types, and `terraform output` to inspect root outputs after values are stored in state.
+
+</details>
+
+### 20. How would you troubleshoot a production variable failure?
+
+<details><summary>Answer</summary>
+
+First identify the variable and its declared type and validation rules. Then trace where its value came from, such as `-var`, `.tfvars`, or `TF_VAR_*`. Check any local expressions using the value, identify the exact resource address affected, and review the plan before applying. Fix the input at its source rather than weakening the module contract.
+
+</details>
