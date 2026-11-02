@@ -63,12 +63,73 @@ Tasks:
 4. Run `terraform plan` again.
 5. Confirm the final plan matches the intended state.
 
+## DAY 2 — Variables, Locals, Outputs and Type Constraints
+
+### Lab 1: Build a typed module interface
+
+Create a small AWS configuration with variables for `project`, `environment`, and `aws_region`.
+
+Tasks:
+
+1. Give every variable an explicit type.
+2. Add validation so `environment` accepts only `dev`, `test`, or `prod`.
+3. Run `terraform fmt`.
+4. Run `terraform validate`.
+5. Run `terraform plan` with `-var="environment=dev"`.
+6. Change the value to an invalid environment and observe the validation failure.
+
+### Lab 2: Use locals for naming and tags
+
+Create a local `bucket_name` and a `common_tags` map using the input variables.
+
+Tasks:
+
+1. Use the local bucket name in `aws_s3_bucket.data`.
+2. Apply the common tags to the resource.
+3. Use `terraform console` to inspect the local expressions.
+4. Confirm the exact resource address is `aws_s3_bucket.data`.
+
+### Lab 3: Expose outputs
+
+Create an output for the S3 bucket name.
+
+Run:
+
+```bash
+terraform output
+terraform output bucket_name
+terraform output -raw bucket_name
+```
+
+If using a child module, expose the child output again from the root module and confirm the root CLI output shows it.
+
+### Lab 4: Type-constraint failure and recovery
+
+Scenario: the module expects:
+
+```hcl
+variable "replicas" {
+  type = number
+}
+```
+
+Provide an invalid value such as `"three"` through a variable source.
+
+Tasks:
+
+1. Run `terraform plan` and capture the type error.
+2. Identify where the value was supplied.
+3. Fix the input instead of weakening the type constraint.
+4. Run `terraform validate` and `terraform plan` again.
+5. Confirm the final plan contains only expected changes.
+
 ### Troubleshooting checklist
 
-- What Terraform CLI version is running?
-- What provider version is selected?
-- Is `.terraform.lock.hcl` present and committed?
-- What exact resource address is affected?
-- What does `terraform state show <address>` report?
-- Is the difference configuration drift, state drift, or a provider/dependency change?
+- Where did the variable value come from: `-var`, `.tfvars`, or `TF_VAR_*`?
+- Does the declared type match the intended value?
+- Is validation enforcing the business rule?
+- Is a local changing or combining the value?
+- What exact resource address consumes the value?
+- Is the expected result exposed through a root output?
+- Does `terraform console` help isolate the expression?
 - Does the final plan contain only expected changes?
