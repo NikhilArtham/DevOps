@@ -163,3 +163,85 @@ Use `terraform validate` for configuration checks, `terraform plan` to evaluate 
 First identify the variable and its declared type and validation rules. Then trace where its value came from, such as `-var`, `.tfvars`, or `TF_VAR_*`. Check any local expressions using the value, identify the exact resource address affected, and review the plan before applying. Fix the input at its source rather than weakening the module contract.
 
 </details>
+
+## DAY 3 — Resource Lifecycle, Dependencies and Replace Behavior
+
+### 21. What does `-/+` mean in a Terraform plan?
+
+<details><summary>Answer</summary>
+
+It means Terraform must replace the resource: destroy the existing instance and create a new one. The replacement is usually required because a changed attribute cannot be updated in place by the resource/provider.
+
+</details>
+
+### 22. What is `create_before_destroy`?
+
+<details><summary>Answer</summary>
+
+It is a lifecycle setting that asks Terraform to create a replacement before destroying the existing resource when possible. It can reduce downtime, but it does not guarantee zero downtime because provider constraints, uniqueness, dependencies, and quotas can prevent parallel existence.
+
+</details>
+
+### 23. What is `prevent_destroy` used for?
+
+<details><summary>Answer</summary>
+
+It is a lifecycle guardrail that causes Terraform to reject a plan/apply that would destroy the resource. It can protect critical resources, but it may also block legitimate replacement or deletion operations.
+
+</details>
+
+### 24. What is `ignore_changes` and why can it be dangerous?
+
+<details><summary>Answer</summary>
+
+`ignore_changes` tells Terraform to ignore changes to specified attributes during planning. It can be appropriate when another system intentionally owns an attribute, but it can also hide drift and make Terraform's configuration differ from reality without obvious plan output.
+
+</details>
+
+### 25. What is the difference between implicit and explicit dependencies?
+
+<details><summary>Answer</summary>
+
+An implicit dependency is created automatically when one resource references another resource's value. An explicit dependency uses `depends_on` when Terraform cannot infer an operational dependency from configuration.
+
+</details>
+
+### 26. Should `depends_on` be added to every resource relationship?
+
+<details><summary>Answer</summary>
+
+No. Prefer direct resource references because they express the actual relationship and allow Terraform to build a more precise graph. Use `depends_on` only when a real dependency exists but cannot be inferred from an expression.
+
+</details>
+
+### 27. How do you troubleshoot an unexpected replacement?
+
+<details><summary>Answer</summary>
+
+Stop before applying. Identify the exact resource address, inspect the plan for the changed attribute, determine why the provider requires replacement, and verify whether the change is intentional. Check dependencies, capacity, uniqueness constraints, persistence, and whether `create_before_destroy` is safe before approving the replacement.
+
+</details>
+
+### 28. How can you inspect Terraform's dependency graph?
+
+<details><summary>Answer</summary>
+
+Run `terraform graph`. The command produces a graph representation of Terraform's dependency relationships. It is useful when troubleshooting resource ordering or validating whether an explicit dependency is actually needed.
+
+</details>
+
+### 29. Does `create_before_destroy` always prevent downtime?
+
+<details><summary>Answer</summary>
+
+No. It only changes the preferred replacement ordering. Resource naming rules, uniqueness constraints, quotas, provider behavior, health checks, load balancing, and application architecture can still cause downtime or prevent parallel creation.
+
+</details>
+
+### 30. Should you delete Terraform state to fix an unexpected replacement?
+
+<details><summary>Answer</summary>
+
+Normally no. First identify the changed attribute and compare configuration, state, and real infrastructure. State deletion can make Terraform lose its mapping to existing infrastructure and is not a normal replacement-recovery technique.
+
+</details>
