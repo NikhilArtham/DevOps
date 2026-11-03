@@ -123,13 +123,90 @@ Tasks:
 4. Run `terraform validate` and `terraform plan` again.
 5. Confirm the final plan contains only expected changes.
 
+## DAY 3 — Resource Lifecycle, Dependencies and Replace Behavior
+
+### Lab 1: Inspect update vs replacement
+
+Create an AWS resource where one attribute can be changed in place and another test change causes replacement.
+
+Tasks:
+
+1. Run `terraform plan` and identify the exact resource address.
+2. Record whether Terraform shows `~`, `-`, `+`, or `-/+`.
+3. Identify the exact attribute causing replacement.
+4. Run `terraform state show <address>` and compare the stored value with configuration.
+5. Save a reviewed plan with `terraform plan -out=tfplan`.
+6. Inspect it with `terraform show tfplan`.
+
+### Lab 2: `create_before_destroy`
+
+Use a disposable test resource with:
+
+```hcl
+lifecycle {
+  create_before_destroy = true
+}
+```
+
+Tasks:
+
+1. Make a change that requires replacement.
+2. Run `terraform plan`.
+3. Observe the replacement ordering.
+4. Consider whether naming, quotas, or uniqueness constraints could prevent the old and new resources from existing simultaneously.
+5. Remove the lifecycle setting after the exercise if it is not part of the intended design.
+
+### Lab 3: Dependency graph
+
+Create two resources where one directly references an attribute of the other.
+
+Tasks:
+
+1. Run `terraform plan`.
+2. Identify the implicit dependency.
+3. Run `terraform graph`.
+4. Add a narrowly scoped `depends_on` only for a dependency Terraform cannot infer.
+5. Re-run the plan and confirm the ordering is still correct.
+
+### Lab 4: Accidental replacement recovery
+
+Scenario: a production-like EC2 configuration unexpectedly shows:
+
+```text
+-/+ aws_instance.app
+```
+
+Tasks:
+
+1. Stop before applying.
+2. Identify the exact changed attribute.
+3. Determine why the provider requires replacement.
+4. Decide whether the change is intentional.
+5. If accidental, revert the configuration and run `terraform plan` again.
+6. If intentional, evaluate capacity, downtime, data persistence, dependencies, and `create_before_destroy` feasibility.
+7. Confirm the final plan before approval.
+
+### Lab 5: Drift and `ignore_changes`
+
+Scenario: an external system changes a Terraform-managed tag.
+
+Tasks:
+
+1. Run `terraform plan` and identify the resource address.
+2. Decide whether Terraform or the external system should own the tag.
+3. If Terraform owns it, restore the intended configuration.
+4. If another system intentionally owns it, evaluate whether `ignore_changes` is appropriate.
+5. Re-run `terraform plan` and verify that only expected differences remain.
+
 ### Troubleshooting checklist
 
-- Where did the variable value come from: `-var`, `.tfvars`, or `TF_VAR_*`?
-- Does the declared type match the intended value?
-- Is validation enforcing the business rule?
-- Is a local changing or combining the value?
-- What exact resource address consumes the value?
-- Is the expected result exposed through a root output?
-- Does `terraform console` help isolate the expression?
+- What exact resource address is affected?
+- Is the plan an update or a replacement?
+- Which attribute forces replacement?
+- Is the change intentional?
+- Can the old and new resources coexist?
+- Are there quotas, naming, uniqueness, or dependency constraints?
+- Is the dependency implicit or does it genuinely require `depends_on`?
+- Is `ignore_changes` hiding an ownership problem?
+- Does `terraform state show <address>` match expectations?
 - Does the final plan contain only expected changes?
