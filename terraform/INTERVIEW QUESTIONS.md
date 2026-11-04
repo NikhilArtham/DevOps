@@ -245,3 +245,86 @@ No. It only changes the preferred replacement ordering. Resource naming rules, u
 Normally no. First identify the changed attribute and compare configuration, state, and real infrastructure. State deletion can make Terraform lose its mapping to existing infrastructure and is not a normal replacement-recovery technique.
 
 </details>
+
+
+## DAY 4 — `count` vs `for_each` and Stable Resource Addressing
+
+### 31. What is the difference between `count` and `for_each`?
+
+<details><summary>Answer</summary>
+
+`count` creates indexed instances such as `aws_instance.app[0]`. `for_each` creates keyed instances such as `aws_instance.app["api"]`. Use `count` for simple positional or identical instances; use `for_each` when each instance has a meaningful identity that should remain stable as the collection changes.
+
+</details>
+
+### 32. What is a Terraform resource address?
+
+<details><summary>Answer</summary>
+
+A resource address is Terraform's identifier for a resource instance in configuration and state. Examples are `aws_instance.app`, `aws_instance.app[0]`, and `aws_instance.service["api"]`. It is not the physical AWS resource ID.
+
+</details>
+
+### 33. Why can removing an item from the middle of a `count` list be risky?
+
+<details><summary>Answer</summary>
+
+`count` uses numeric positions as instance identity. Removing a middle list item shifts the values at later indexes. Terraform may then update or replace the object at an index and destroy the final index, even though the developer intended to remove only one logical item.
+
+</details>
+
+### 34. Why is `for_each` often safer for named infrastructure?
+
+<details><summary>Answer</summary>
+
+Each instance is identified by a stable map key or set member, such as `"api"` or `"worker"`. Removing one key does not shift the identity of the other instances. This makes the plan easier to reason about when named resources are added or removed independently.
+
+</details>
+
+### 35. What are `each.key` and `each.value`?
+
+<details><summary>Answer</summary>
+
+Inside a resource using `for_each`, `each.key` is the current map key or set member. `each.value` is the corresponding map value. For a set of strings, the key and value are the same string. For a map, the value can hold per-instance configuration.
+
+</details>
+
+### 36. Can a resource use both `count` and `for_each`?
+
+<details><summary>Answer</summary>
+
+No. A single resource or module block can use either `count` or `for_each`, not both. Choose the one that best represents the identity of the instances.
+
+</details>
+
+### 37. What happens to resource addresses when converting from `count` to `for_each`?
+
+<details><summary>Answer</summary>
+
+The addresses change from numeric indexes, such as `aws_instance.app[0]`, to keyed addresses, such as `aws_instance.service["api"]`. Without an explicit migration, Terraform may interpret the new address as a new object and the old address as one to destroy. Use correctly mapped `moved` blocks or a carefully managed `terraform state mv` operation, then verify the plan.
+
+</details>
+
+### 38. What is a `moved` block?
+
+<details><summary>Answer</summary>
+
+A `moved` block declares that a resource instance previously tracked at one address should now be tracked at another address. It lets Terraform update its state address mapping without treating the move itself as destruction and recreation. The mapping must match the actual existing instance.
+
+</details>
+
+### 39. How do you inspect instances created with `for_each`?
+
+<details><summary>Answer</summary>
+
+Run `terraform state list` to see all tracked addresses. Then inspect a specific instance with a quoted address, for example `terraform state show 'aws_instance.service["api"]'`. Also inspect `terraform plan` to understand proposed changes before applying.
+
+</details>
+
+### 40. When is `count` still a good choice?
+
+<details><summary>Answer</summary>
+
+It is suitable for a simple number of interchangeable instances where positional identity is acceptable, or for a conditional singleton using `count = condition ? 1 : 0`. If instances are independently named or may be selectively removed or reordered, `for_each` is usually a better fit.
+
+</details>
