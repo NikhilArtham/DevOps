@@ -7,6 +7,7 @@ Terraform is the infrastructure-as-code track for this repository.
 - [x] DAY 1 — Professional Workflow: Repo Structure, Providers and Versions
 - [x] DAY 2 — Variables, Locals, Outputs and Type Constraints
 - [x] DAY 3 — Resource Lifecycle, Dependencies and Replace Behavior
+- [x] DAY 4 — `count` vs `for_each` and Stable Resource Addressing
 
 ## Topics
 
@@ -15,6 +16,7 @@ Terraform is the infrastructure-as-code track for this repository.
 | 1 | Professional workflow, repo structure, providers and versions | [DAY 1](DAY%201%20-%20Professional%20Workflow%20Repo%20Structure%20Providers%20and%20Versions.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 | 2 | Variables, locals, outputs and type constraints | [DAY 2](DAY%202%20-%20Variables%20Locals%20Outputs%20and%20Type%20Constraints.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 | 3 | Resource lifecycle, dependencies and replace behavior | [DAY 3](DAY%203%20-%20Resource%20Lifecycle%20Dependencies%20and%20Replace%20Behavior.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
+| 4 | `count` vs `for_each` and stable resource addressing | [DAY 4](DAY%204%20-%20Count%20vs%20For%20Each%20and%20Stable%20Resource%20Addressing.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 
 ## Centralized files
 
@@ -30,3 +32,13 @@ Terraform is the infrastructure-as-code track for this repository.
 - Inspect exact resource addresses and state with `terraform state list` and `terraform state show`.
 - Save and inspect reviewed plans with `terraform plan -out` and `terraform show`.
 - Recover safely from accidental replacement and drift without deleting Terraform state.
+
+
+## Day 4 focus
+
+- Compare indexed `count` addresses with keyed `for_each` addresses.
+- Understand why removing a middle list item can shift `count` instance identity.
+- Use `each.key` and `each.value` with sets and maps.
+- Inspect exact addresses with `terraform state list` and `terraform state show`.
+- Migrate addresses safely with `moved` blocks or a carefully reviewed `terraform state mv`.
+- Verify that address changes do not cause unintended resource replacement.
