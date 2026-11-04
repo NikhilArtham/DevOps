@@ -210,3 +210,67 @@ Tasks:
 - Is `ignore_changes` hiding an ownership problem?
 - Does `terraform state show <address>` match expectations?
 - Does the final plan contain only expected changes?
+
+
+## DAY 4 — `count` vs `for_each` and Stable Resource Addressing
+
+### Lab 1: Create indexed resources with `count`
+
+In a disposable AWS test environment, create three identical resources using a list and `count = length(var.names)`.
+
+Tasks:
+
+1. Use `count.index` to set each resource's Name tag.
+2. Run `terraform fmt`, `terraform validate`, and `terraform plan`.
+3. Record the addresses: `aws_instance.app[0]`, `aws_instance.app[1]`, and `aws_instance.app[2]`.
+4. Apply only in the disposable environment.
+5. Run `terraform state list` and `terraform state show 'aws_instance.app[1]'`.
+
+### Lab 2: Reproduce the positional identity problem
+
+Start with the list `["api", "worker", "scheduler"]`. After applying, remove the middle item `worker`.
+
+Tasks:
+
+1. Run `terraform plan` before applying.
+2. Record which logical name is now assigned to each index.
+3. Inspect the exact addresses and attributes with `terraform state show`.
+4. Explain why index 1 now represents scheduler and why index 2 is removed.
+5. Do not apply until you can explain every proposed update, replacement, and destroy action.
+
+### Lab 3: Rebuild using `for_each`
+
+Replace the positional list pattern with a set or map keyed by service name.
+
+Tasks:
+
+1. Use `for_each` and `each.key`; for a map, use `each.value` for per-service configuration.
+2. Run `terraform plan`.
+3. Record addresses such as `aws_instance.service["api"]`.
+4. Apply only in the disposable environment.
+5. Run `terraform state list` and inspect at least two keyed instances using quoted addresses.
+
+### Lab 4: Migrate addresses safely
+
+Scenario: an existing `count` resource must be converted to `for_each` without replacing existing infrastructure.
+
+Tasks:
+
+1. Back up state using your team's approved state-backup procedure.
+2. Run `terraform state list` and inspect each old index with `terraform state show`.
+3. Map every old index to the correct logical key.
+4. Add a `moved` block for each old-to-new address mapping, or use a carefully controlled `terraform state mv` procedure.
+5. Run `terraform plan` and confirm Terraform recognizes address moves rather than unintended destroy/create actions.
+6. Do not apply if the mapping is ambiguous or the plan proposes replacing an existing object unexpectedly.
+
+### Troubleshooting checklist
+
+- Is the resource using `count` or `for_each`?
+- What exact addresses appear in the plan and state?
+- Does a numeric index still represent the same logical object?
+- Are `for_each` keys stable and meaningful?
+- Which instance is being removed, updated, or replaced?
+- Is an address migration required?
+- Does each `moved` block map the correct old address to the correct new address?
+- Has state been backed up before any direct state migration?
+- Does the final plan preserve the intended physical resources?
