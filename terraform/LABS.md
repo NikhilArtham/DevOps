@@ -274,3 +274,73 @@ Tasks:
 - Does each `moved` block map the correct old address to the correct new address?
 - Has state been backed up before any direct state migration?
 - Does the final plan preserve the intended physical resources?
+
+
+## DAY 5 — Dynamic Blocks, Expressions and Conditional Infrastructure
+
+### Lab 1: Test expressions in the console
+
+Use `terraform console` to evaluate:
+
+```hcl
+var.environment == "prod" ? "t3.large" : "t3.micro"
+[for port in [80, 443, 8080] : port if port != 8080]
+merge({ Environment = "dev" }, { Owner = "platform" })
+```
+
+Tasks:
+
+1. Explain the result type of each expression.
+2. Change the input values and predict the output before running the expression.
+3. Use `lookup`, `contains`, and `length` on a small map/list.
+4. Use `terraform validate` after putting the expressions into a configuration.
+
+### Lab 2: Conditional resource creation
+
+Create a CloudWatch alarm controlled by `enable_monitoring` and `count = var.enable_monitoring ? 1 : 0`.
+
+Tasks:
+
+1. Plan with the flag set to false and record the planned address/actions.
+2. Set it to true and plan again.
+3. Record the address `aws_cloudwatch_metric_alarm.high_cpu[0]`.
+4. In a disposable environment, apply and inspect it with `terraform state list` and `terraform state show`.
+5. Set the flag back to false and inspect the destroy plan. Do not apply unless you intend to remove the alarm.
+
+### Lab 3: Generate nested security-group ingress rules
+
+Use the typed `ingress_rules` variable and dynamic `ingress` block from DAY 5.
+
+Tasks:
+
+1. Supply two approved test rules in a variable file.
+2. Run `terraform fmt`, `terraform init`, `terraform validate`, and `terraform plan`.
+3. Confirm there is one resource address: `aws_security_group.app`.
+4. Inspect the nested ingress configuration and verify each port, protocol, and CIDR.
+5. Add a third rule and confirm the plan changes the security group rather than creating another security-group resource.
+6. Test an invalid port range and confirm variable validation rejects it.
+
+### Lab 4: Failure and recovery — malformed dynamic input
+
+Scenario: a developer misspells `from_port` as `form_port` or supplies a string instead of a number.
+
+Tasks:
+
+1. Do not apply the configuration.
+2. Identify the exact resource address and variable input source.
+3. Compare the input object keys and types with the declared object schema.
+4. Run `terraform fmt`, `terraform validate`, and `terraform plan`.
+5. Correct the input at its source.
+6. Review every generated ingress rule for least-privilege CIDRs and required ports.
+7. Confirm the final plan contains only intended changes.
+
+### Troubleshooting checklist
+
+- Is this a value expression, resource-level conditional, or nested dynamic block?
+- Does the provider schema support the dynamic block label and its arguments?
+- Does the input collection have the expected type and object keys?
+- Is the dynamic iterator referenced correctly?
+- Does a conditional `count = 0` remove an existing resource?
+- What exact resource address appears in the plan?
+- Are generated ports, protocols, CIDRs, and permissions approved?
+- Did validation and plan complete without errors or unexpected changes?
