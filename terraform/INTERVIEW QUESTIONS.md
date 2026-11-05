@@ -328,3 +328,87 @@ Run `terraform state list` to see all tracked addresses. Then inspect a specific
 It is suitable for a simple number of interchangeable instances where positional identity is acceptable, or for a conditional singleton using `count = condition ? 1 : 0`. If instances are independently named or may be selectively removed or reordered, `for_each` is usually a better fit.
 
 </details>
+
+
+## DAY 5 — Dynamic Blocks, Expressions and Conditional Infrastructure
+
+### 41. What is a Terraform expression?
+
+<details><summary>Answer</summary>
+
+An expression represents a value. It can reference variables, locals, resources, data sources, operators, and functions. Expressions are used to calculate configuration values and transform collections.
+
+</details>
+
+### 42. What is a conditional expression?
+
+<details><summary>Answer</summary>
+
+A conditional expression uses the form `condition ? true_value : false_value`. Terraform evaluates the condition and returns one of the two values. It is useful for environment-specific settings and optional values.
+
+</details>
+
+### 43. What is a Terraform `for` expression?
+
+<details><summary>Answer</summary>
+
+A `for` expression iterates over a list, set, or map and constructs a new collection. It can also filter elements using an `if` clause. It is useful for transforming tags, names, and configuration data.
+
+</details>
+
+### 44. What is a dynamic block?
+
+<details><summary>Answer</summary>
+
+A dynamic block generates repeated nested configuration blocks from a collection. It is useful when a resource supports repeatable nested blocks, such as ingress rules inside an AWS security group. It does not create separate Terraform resource instances.
+
+</details>
+
+### 45. What is the difference between dynamic blocks and resource-level `for_each`?
+
+<details><summary>Answer</summary>
+
+Resource-level `for_each` creates multiple independently addressed resource instances. A dynamic block generates multiple nested blocks inside one resource instance. For example, resource-level `for_each` can create several security groups, while a dynamic ingress block can generate several ingress rules inside one security group.
+
+</details>
+
+### 46. What are `for_each` and `content` used for inside a dynamic block?
+
+<details><summary>Answer</summary>
+
+The dynamic block's `for_each` defines the collection to iterate over. The `content` block describes the nested block generated for each element. The iterator exposes the current element's key and value.
+
+</details>
+
+### 47. Can dynamic blocks generate any Terraform block?
+
+<details><summary>Answer</summary>
+
+No. A dynamic block can generate only nested block types supported by the parent resource or data source schema. It cannot generate meta-argument blocks such as `lifecycle` or `provisioner`, because Terraform needs to process those earlier.
+
+</details>
+
+### 48. How do you conditionally create a resource?
+
+<details><summary>Answer</summary>
+
+For an optional singleton, use `count = condition ? 1 : 0`. For multiple named optional resources, use `for_each` with a map or set. Remember that changing count from one to zero plans to destroy the previously managed resource.
+
+</details>
+
+### 49. How would you troubleshoot a dynamic block error?
+
+<details><summary>Answer</summary>
+
+Check that the dynamic block label is supported by the provider resource schema, verify the input collection's type and object keys, and confirm the iterator references are correct. Then run `terraform fmt`, `terraform validate`, and `terraform plan`. Inspect the generated nested configuration and do not apply until the plan is correct.
+
+</details>
+
+### 50. Why should you validate inputs used to generate security-group rules?
+
+<details><summary>Answer</summary>
+
+A structurally valid rule can still be insecure. Validate port ranges, protocols, and approved CIDR ranges so a reusable module does not accidentally expose management or application ports to untrusted networks. Review the generated plan before applying.
+
+</details>
+
