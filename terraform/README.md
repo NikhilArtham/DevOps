@@ -8,6 +8,7 @@ Terraform is the infrastructure-as-code track for this repository.
 - [x] DAY 2 — Variables, Locals, Outputs and Type Constraints
 - [x] DAY 3 — Resource Lifecycle, Dependencies and Replace Behavior
 - [x] DAY 4 — `count` vs `for_each` and Stable Resource Addressing
+- [x] DAY 5 — Dynamic Blocks, Expressions and Conditional Infrastructure
 
 ## Topics
 
@@ -17,6 +18,7 @@ Terraform is the infrastructure-as-code track for this repository.
 | 2 | Variables, locals, outputs and type constraints | [DAY 2](DAY%202%20-%20Variables%20Locals%20Outputs%20and%20Type%20Constraints.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 | 3 | Resource lifecycle, dependencies and replace behavior | [DAY 3](DAY%203%20-%20Resource%20Lifecycle%20Dependencies%20and%20Replace%20Behavior.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 | 4 | `count` vs `for_each` and stable resource addressing | [DAY 4](DAY%204%20-%20Count%20vs%20For%20Each%20and%20Stable%20Resource%20Addressing.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
+| 5 | Dynamic blocks, expressions and conditional infrastructure | [DAY 5](DAY%205%20-%20Dynamic%20Blocks%20Expressions%20and%20Conditional%20Infrastructure.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 
 ## Centralized files
 
@@ -42,3 +44,13 @@ Terraform is the infrastructure-as-code track for this repository.
 - Inspect exact addresses with `terraform state list` and `terraform state show`.
 - Migrate addresses safely with `moved` blocks or a carefully reviewed `terraform state mv`.
 - Verify that address changes do not cause unintended resource replacement.
+
+
+## Day 5 focus
+
+- Use conditional expressions and `for` expressions to calculate and transform values.
+- Use functions such as `lookup`, `merge`, `try`, and `coalesce` appropriately.
+- Create optional resources with conditional `count`.
+- Generate repeatable nested configuration with dynamic blocks.
+- Inspect AWS security-group ingress rules and optional CloudWatch alarms in the plan.
+- Troubleshoot malformed input objects and validate generated network rules before applying.
