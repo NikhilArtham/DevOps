@@ -9,6 +9,7 @@ Terraform is the infrastructure-as-code track for this repository.
 - [x] DAY 3 — Resource Lifecycle, Dependencies and Replace Behavior
 - [x] DAY 4 — `count` vs `for_each` and Stable Resource Addressing
 - [x] DAY 5 — Dynamic Blocks, Expressions and Conditional Infrastructure
+- [x] DAY 6 — Reusable Terraform Module Design
 
 ## Topics
 
