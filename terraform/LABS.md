@@ -344,3 +344,87 @@ Tasks:
 - What exact resource address appears in the plan?
 - Are generated ports, protocols, CIDRs, and permissions approved?
 - Did validation and plan complete without errors or unexpected changes?
+
+
+## DAY 6 — Reusable Terraform Module Design
+
+### Lab 1: Build a local S3 child module
+
+Create the root configuration and `modules/s3_bucket/` files from the DAY 6 notes.
+
+Tasks:
+
+1. Put AWS provider configuration in the root module.
+2. Define typed child inputs for `bucket_name`, `tags`, and `enable_versioning`.
+3. Create the S3 bucket, public-access block, encryption configuration, and versioning resources in the child module.
+4. Expose `bucket_id` and `bucket_arn` from the child module.
+5. Call it as `module "data_bucket"`.
+6. Run `terraform fmt -recursive`, `terraform init`, `terraform validate`, and `terraform plan`.
+
+### Lab 2: Inspect the module plan and state addresses
+
+Tasks:
+
+1. Record all four expected addresses:
+   - `module.data_bucket.aws_s3_bucket.this`
+   - `module.data_bucket.aws_s3_bucket_public_access_block.this`
+   - `module.data_bucket.aws_s3_bucket_server_side_encryption_configuration.this`
+   - `module.data_bucket.aws_s3_bucket_versioning.this`
+2. Save and inspect a plan using `terraform plan -out=tfplan` and `terraform show tfplan`.
+3. Apply only in a disposable AWS account after reviewing the plan.
+4. Run `terraform state list` and inspect the bucket with `terraform state show 'module.data_bucket.aws_s3_bucket.this'`.
+5. Run `terraform output` and record the bucket ARN.
+6. Distinguish the Terraform address from the physical S3 bucket name/ID.
+
+### Lab 3: Reuse the module for a second bucket
+
+Call the same child module a second time with a different module call name and bucket name.
+
+Tasks:
+
+1. Add `module "logs_bucket"` using the same local source.
+2. Give it different tags and versioning input.
+3. Run `terraform plan`.
+4. Record the new addresses under `module.logs_bucket...`.
+5. Confirm the original `module.data_bucket...` addresses remain unchanged.
+6. Apply only in a disposable account and inspect both module instances in state.
+
+### Lab 4: Module input failure and recovery
+
+Scenario: pass an invalid bucket name or unsupported environment value from the root configuration.
+
+Tasks:
+
+1. Stop before apply.
+2. Identify the failing module call and input variable.
+3. Inspect the declared type and validation condition in the child module.
+4. Correct the value at the caller rather than weakening a valid module contract.
+5. Run `terraform fmt -recursive`, `terraform validate`, and `terraform plan`.
+6. Confirm the final plan contains only intended resources and actions.
+
+### Lab 5: Drift recovery
+
+Scenario: change the S3 bucket's Environment tag outside Terraform in a controlled test account.
+
+Tasks:
+
+1. Run `terraform plan` and identify the exact module-qualified address.
+2. Inspect the bucket using `terraform state show 'module.data_bucket.aws_s3_bucket.this'`.
+3. Compare the configuration, Terraform state, and live AWS tag.
+4. Decide whether Terraform or the external system owns the tag.
+5. If Terraform owns it, review the plan that restores the declared tag.
+6. If ownership belongs elsewhere, redesign the interface/ownership deliberately; do not hide unexplained drift with `ignore_changes`.
+7. Re-run the plan and verify only the intended correction remains.
+
+### Troubleshooting checklist
+
+- Is this the root module or a child module?
+- What exact module call name and child resource address are involved?
+- Are required inputs supplied with the expected types?
+- Do validation rules reject invalid caller input early?
+- Does the child module configure credentials or region that should belong to the root?
+- Are outputs sufficient for callers without exposing unnecessary internals?
+- Did a module source/version or module call name change?
+- Does the plan show address moves, updates, replacements, or destroys?
+- Has state ownership been established before responding to drift?
+- Does the final plan contain only reviewed changes?
