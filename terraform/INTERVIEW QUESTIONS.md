@@ -412,3 +412,86 @@ A structurally valid rule can still be insecure. Validate port ranges, protocols
 
 </details>
 
+
+
+## DAY 6 — Reusable Terraform Module Design
+
+### 51. What is a Terraform module?
+
+<details><summary>Answer</summary>
+
+A Terraform module is a collection of Terraform configuration files in one directory. The root configuration is the root module, and a module called by another module is a child module. Modules package resources behind inputs and outputs so infrastructure patterns can be reused.
+
+</details>
+
+### 52. What is the difference between a root module and a child module?
+
+<details><summary>Answer</summary>
+
+The root module is the working directory where Terraform is run. It commonly configures providers, supplies environment-specific inputs, calls child modules, and owns the deployment state. A child module encapsulates a capability using its own variables, resources, locals, and outputs. A child module normally shares the root module's state.
+
+</details>
+
+### 53. Why should provider configuration normally live in the root module?
+
+<details><summary>Answer</summary>
+
+The root module is the deployment entry point and knows the target account, region, credentials, and provider aliases. Keeping provider configuration there allows the same child module to be reused across environments and accounts. Child modules can declare provider requirements and receive provider configurations from callers without embedding credentials.
+
+</details>
+
+### 54. What makes a Terraform module reusable?
+
+<details><summary>Answer</summary>
+
+A reusable module has a clear and stable input contract, typed variables, meaningful validation, sensible defaults, useful outputs, minimal hardcoding, and documentation. It should encapsulate a real infrastructure capability without exposing unnecessary complexity or adding abstraction without value.
+
+</details>
+
+### 55. What is the purpose of module inputs and outputs?
+
+<details><summary>Answer</summary>
+
+Inputs let callers configure a module without editing its internal resources. Outputs return useful values such as IDs, ARNs, endpoints, or names to the caller. A caller references a child output as `module.<module_call_name>.<output_name>`.
+
+</details>
+
+### 56. How do you reference a resource created inside a child module?
+
+<details><summary>Answer</summary>
+
+A resource address includes the module call name. For example, a resource declared as `aws_s3_bucket.this` inside a child module called `data_bucket` is addressed as `module.data_bucket.aws_s3_bucket.this`. This Terraform address is different from the physical AWS resource ID.
+
+</details>
+
+### 57. Does a child module have a separate state file by default?
+
+<details><summary>Answer</summary>
+
+No. A child module normally uses the state of the root configuration that calls it. Its resources are tracked using module-qualified addresses. A separate root configuration with its own backend/state is a separate deployment boundary.
+
+</details>
+
+### 58. How can you use the same module more than once?
+
+<details><summary>Answer</summary>
+
+Call the same module source from multiple module blocks with different call names and input values. For example, `module "data_bucket"` and `module "logs_bucket"` can both use `./modules/s3_bucket`. Their resources receive different addresses because the module call names differ.
+
+</details>
+
+### 59. What happens if you rename a module block?
+
+<details><summary>Answer</summary>
+
+Renaming a module call changes the resource addresses in state. Terraform may interpret the new addresses as new resources and the old addresses as resources to destroy. Use a correctly scoped `moved` block or a controlled state migration, then inspect the plan to confirm Terraform recognizes the address move instead of replacing infrastructure.
+
+</details>
+
+### 60. How do you troubleshoot invalid module input or drift?
+
+<details><summary>Answer</summary>
+
+For invalid input, inspect the caller's value, child variable type, and validation condition; correct the value at its source and re-run validation and plan. For drift, identify the exact module-qualified address, compare configuration, state, and live infrastructure, decide which system owns the attribute, and review the smallest safe correction. Do not delete state or suppress unexplained drift with `ignore_changes`.
+
+</details>
