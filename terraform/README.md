@@ -12,6 +12,8 @@ Terraform is the infrastructure-as-code track for this repository.
 
 ## Topics
 
+| 6 | Reusable Terraform module design | [DAY 6](DAY%206%20-%20Reusable%20Terraform%20Module%20Design.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
+
 | Day | Topic | Notes | Labs | Interview |
 |---|---|---|---|---|
 | 1 | Professional workflow, repo structure, providers and versions | [DAY 1](DAY%201%20-%20Professional%20Workflow%20Repo%20Structure%20Providers%20and%20Versions.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
@@ -54,3 +56,14 @@ Terraform is the infrastructure-as-code track for this repository.
 - Generate repeatable nested configuration with dynamic blocks.
 - Inspect AWS security-group ingress rules and optional CloudWatch alarms in the plan.
 - Troubleshoot malformed input objects and validate generated network rules before applying.
+
+
+## Day 6 focus
+
+- Separate root-module responsibilities from child-module responsibilities.
+- Design typed inputs, validation rules, and useful outputs.
+- Build and call a local reusable AWS S3 module.
+- Understand provider inheritance and module source/version choices.
+- Inspect module-qualified resource addresses in plans and state.
+- Reuse one module from multiple module blocks without confusing their identities.
+- Recover safely from invalid inputs, module address changes, and out-of-band drift.
