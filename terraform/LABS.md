@@ -428,3 +428,77 @@ Tasks:
 - Does the plan show address moves, updates, replacements, or destroys?
 - Has state ownership been established before responding to drift?
 - Does the final plan contain only reviewed changes?
+
+
+## DAY 7 — Module Inputs, Outputs, Validation and Documentation
+
+### Lab 1: Improve the S3 module input contract
+
+Update the DAY 6 `modules/s3_bucket` module.
+
+Tasks:
+
+1. Add required `environment` input with type `string` and `nullable = false`.
+2. Restrict it to `dev`, `test`, or `prod`.
+3. Add descriptions and explicit types to all inputs.
+4. Keep safe defaults for `tags` and `enable_versioning`; keep `bucket_name` and `environment` required.
+5. Add a `retention_days` number variable with a documented valid range, or implement an equivalent numeric validation example.
+6. Run `terraform fmt -recursive`, `terraform validate`, and `terraform plan`.
+
+### Lab 2: Expose and consume outputs
+
+Tasks:
+
+1. Ensure the child module exports `bucket_id` and `bucket_arn`.
+2. Re-export `bucket_arn` from the root module as `data_bucket_arn`.
+3. Run `terraform plan` and inspect output values.
+4. Apply only in a disposable account after reviewing the plan.
+5. Run `terraform output data_bucket_arn`.
+6. Distinguish a module output reference from a resource address.
+
+### Lab 3: Write usable module documentation
+
+Create or update `modules/s3_bucket/README.md`.
+
+Include purpose and resources created, a complete usage example, an inputs table (name/type/required/default/description), outputs and descriptions, provider requirements, security notes, validation commands, and assumptions or lifecycle side effects.
+
+Compare every documented default and output with the actual HCL.
+
+### Lab 4: Reproduce invalid-input failure
+
+Scenario: call the module with `environment = "production"` or a malformed bucket name.
+
+Tasks:
+
+1. Run `terraform plan` and capture the validation error.
+2. Trace the input to its actual source.
+3. Explain why type checking and validation are separate.
+4. Correct the caller input without weakening the module contract.
+5. Re-run format, validate, and plan.
+6. Confirm no unexpected creates, replacements, or destroys.
+
+### Lab 5: Reconcile tag drift
+
+Scenario: change the bucket's Environment tag directly in AWS in a disposable environment.
+
+Tasks:
+
+1. Run plan and identify `module.data_bucket.aws_s3_bucket.this`.
+2. Inspect the resource using `terraform state show`.
+3. Compare declared input, state, and live AWS value.
+4. Decide whether Terraform or the external system owns the tag.
+5. Restore the intended value or redesign ownership explicitly.
+6. Re-run plan and verify only the intended change remains.
+
+### Troubleshooting checklist
+
+- Which caller supplied the value?
+- Does it match the declared type and nullability?
+- Did validation fail, or did the provider reject an otherwise valid value?
+- Is the validation message actionable?
+- Is the output declared in the child module and re-exported if needed?
+- Is a sensitive output still stored in state?
+- Does the README match current inputs, defaults, outputs, and behavior?
+- What exact module-qualified resource address is affected?
+- Who owns the drifted attribute?
+- Does the final plan contain only intended changes?
