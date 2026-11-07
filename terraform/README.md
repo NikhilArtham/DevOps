@@ -10,6 +10,7 @@ Terraform is the infrastructure-as-code track for this repository.
 - [x] DAY 4 — `count` vs `for_each` and Stable Resource Addressing
 - [x] DAY 5 — Dynamic Blocks, Expressions and Conditional Infrastructure
 - [x] DAY 6 — Reusable Terraform Module Design
+- [x] DAY 7 — Module Inputs, Outputs, Validation and Documentation
 
 ## Topics
 
@@ -21,7 +22,7 @@ Terraform is the infrastructure-as-code track for this repository.
 | 2 | Variables, locals, outputs and type constraints | [DAY 2](DAY%202%20-%20Variables%20Locals%20Outputs%20and%20Type%20Constraints.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 | 3 | Resource lifecycle, dependencies and replace behavior | [DAY 3](DAY%203%20-%20Resource%20Lifecycle%20Dependencies%20and%20Replace%20Behavior.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 | 4 | `count` vs `for_each` and stable resource addressing | [DAY 4](DAY%204%20-%20Count%20vs%20For%20Each%20and%20Stable%20Resource%20Addressing.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
-| 5 | Dynamic blocks, expressions and conditional infrastructure | [DAY 5](DAY%205%20-%20Dynamic%20Blocks%20Expressions%20and%20Conditional%20Infrastructure.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
+| 5 | Dynamic blocks, expressions and conditional infrastructure | [DAY 5](DAY%205%20-%20Dynamic%20Blocks%20Expressions%20and%20Conditional%20Infrastructure.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |\n| 6 | Reusable Terraform module design | [DAY 6](DAY%206%20-%20Reusable%20Terraform%20Module%20Design.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |\n| 7 | Module inputs, outputs, validation and documentation | [DAY 7](DAY%207%20-%20Module%20Inputs%20Outputs%20Validation%20and%20Documentation.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 
 ## Centralized files
 
@@ -68,3 +69,14 @@ Terraform is the infrastructure-as-code track for this repository.
 - Inspect module-qualified resource addresses in plans and state.
 - Reuse one module from multiple module blocks without confusing their identities.
 - Recover safely from invalid inputs, module address changes, and out-of-band drift.
+
+
+## Day 7 focus
+
+- Design typed module inputs with useful descriptions, safe defaults, and nullability rules.
+- Add validation for environment values, ranges, and collection contents.
+- Understand variable validation versus resource preconditions and postconditions.
+- Expose stable child outputs and re-export required values from the root module.
+- Handle sensitive outputs without assuming they are removed from state.
+- Document usage, inputs, outputs, provider requirements, security assumptions, and tests.
+- Diagnose invalid caller input and reconcile out-of-band drift using exact module-qualified addresses.
