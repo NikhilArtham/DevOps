@@ -495,3 +495,86 @@ Renaming a module call changes the resource addresses in state. Terraform may in
 For invalid input, inspect the caller's value, child variable type, and validation condition; correct the value at its source and re-run validation and plan. For drift, identify the exact module-qualified address, compare configuration, state, and live infrastructure, decide which system owns the attribute, and review the smallest safe correction. Do not delete state or suppress unexplained drift with `ignore_changes`.
 
 </details>
+
+
+## DAY 7 — Module Inputs, Outputs, Validation and Documentation
+
+### 61. What makes a Terraform module input contract good?
+
+<details><summary>Answer</summary>
+
+A good contract has explicit types, clear descriptions, required values without misleading defaults, safe optional defaults, and validation for important rules. It exposes decisions callers need to make without leaking internal implementation details.
+
+</details>
+
+### 62. What is the difference between a type constraint and variable validation?
+
+<details><summary>Answer</summary>
+
+A type constraint defines the shape or data type Terraform accepts, such as `string`, `number`, or `list(string)`. Variable validation adds rules about acceptable values, such as allowing only `dev`, `test`, or `prod`.
+
+</details>
+
+### 63. When should a variable have a default?
+
+<details><summary>Answer</summary>
+
+Use a default when there is a safe and predictable value. Keep important environment-specific values required. A default should not hide a decision callers must consciously make, such as target account or network selection.
+
+</details>
+
+### 64. What does `nullable = false` do?
+
+<details><summary>Answer</summary>
+
+It prevents a variable from receiving null as its value. Use it when null is not meaningful. It does not replace type constraints or validation rules.
+
+</details>
+
+### 65. What is the difference between variable validation, preconditions, and postconditions?
+
+<details><summary>Answer</summary>
+
+Variable validation checks caller-provided input. Preconditions check assumptions before a resource or data-source operation proceeds. Postconditions check guarantees about the resulting resource or data-source value. Choose the mechanism closest to the condition being enforced.
+
+</details>
+
+### 66. Why should module outputs have descriptions?
+
+<details><summary>Answer</summary>
+
+Descriptions tell callers what a value represents and how it should be used. Outputs are part of the module's public interface, so clear descriptions reduce guesswork and improve maintainability.
+
+</details>
+
+### 67. Does marking an output as sensitive remove it from Terraform state?
+
+<details><summary>Answer</summary>
+
+No. The sensitive flag redacts normal CLI display, but the value can still be stored in Terraform state. Secure the backend and restrict state access. Do not treat the flag as encryption or secret removal.
+
+</details>
+
+### 68. Why must a child output sometimes be re-exported by the root module?
+
+<details><summary>Answer</summary>
+
+A parent can reference a child output with `module.<name>.<output>`, but `terraform output` displays outputs declared by the root module. If a root caller needs the child value exposed as a root output, declare a root output that references it.
+
+</details>
+
+### 69. What should a reusable module README contain?
+
+<details><summary>Answer</summary>
+
+It should explain the module purpose, resources created, usage example, required and optional inputs, types and defaults, outputs, provider requirements, permissions, security considerations, assumptions, and validation/test commands. Documentation must stay synchronized with the actual HCL.
+
+</details>
+
+### 70. How would you safely recover from invalid input or module drift?
+
+<details><summary>Answer</summary>
+
+For invalid input, trace the value to its source, compare it with the variable type and validation rules, correct the caller, and re-run validation and plan. For drift, identify the exact module-qualified address, compare configuration, state, and live infrastructure, determine ownership, and review the smallest safe correction. Do not delete state or hide unexplained differences with `ignore_changes`.
+
+</details>
