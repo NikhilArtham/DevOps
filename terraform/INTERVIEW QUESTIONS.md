@@ -578,3 +578,86 @@ It should explain the module purpose, resources created, usage example, required
 For invalid input, trace the value to its source, compare it with the variable type and validation rules, correct the caller, and re-run validation and plan. For drift, identify the exact module-qualified address, compare configuration, state, and live infrastructure, determine ownership, and review the smallest safe correction. Do not delete state or hide unexplained differences with `ignore_changes`.
 
 </details>
+
+
+## DAY 8 — Provider Aliases and Multi-Account Patterns
+
+### 71. What is a Terraform provider alias?
+
+<details><summary>Answer</summary>
+
+A provider alias is a named instance of a provider configuration. It lets one Terraform root module configure multiple contexts, such as different AWS accounts or regions. A resource selects an alias using its `provider` meta-argument.
+
+</details>
+
+### 72. Does `alias = "prod"` automatically select the production AWS account?
+
+<details><summary>Answer</summary>
+
+No. The alias is only a Terraform configuration name. The credentials or assumed role configured in that provider determine the actual AWS identity. Verify it with an `aws_caller_identity` data source before applying.
+
+</details>
+
+### 73. How do you create resources in two AWS accounts from one root module?
+
+<details><summary>Answer</summary>
+
+Configure two AWS provider instances, usually with different cross-account role ARNs, and select them explicitly on resources using `provider = aws.dev` or `provider = aws.prod`. Verify the account IDs through STS identity data sources and review the plan before applying.
+
+</details>
+
+### 74. What is the difference between a role trust policy and a role permissions policy?
+
+<details><summary>Answer</summary>
+
+The trust policy defines which principals are allowed to assume the role. The permissions policy defines what the assumed role can do after it is assumed. Cross-account access normally requires both a permitted assume-role call from the source identity and a trust relationship in the target account.
+
+</details>
+
+### 75. How do you verify which AWS account a provider alias targets?
+
+<details><summary>Answer</summary>
+
+Create an `aws_caller_identity` data source with the relevant `provider` argument and inspect its account ID. Do not rely on the alias label, profile name, or expected role ARN alone.
+
+</details>
+
+### 76. How do you pass a provider alias to a child module?
+
+<details><summary>Answer</summary>
+
+The root module passes the configured provider through the module's `providers` map. If the child refers to a named alias such as `aws.target`, it must declare that alias in `configuration_aliases` in its `required_providers` block. The child should not hardcode account credentials.
+
+</details>
+
+### 77. Do provider aliases appear in Terraform resource addresses?
+
+<details><summary>Answer</summary>
+
+No. A resource address remains something like `aws_s3_bucket.prod` or `module.prod_bucket.aws_s3_bucket.this`. Provider configuration association is tracked separately. Use configuration, `terraform providers`, state inspection, and identity data sources to investigate provider selection.
+
+</details>
+
+### 78. What happens if a resource omits its provider argument?
+
+<details><summary>Answer</summary>
+
+It uses the default, unaliased provider configuration when one exists. If all configured provider blocks are aliased and no default is defined, Terraform may use an implied empty default configuration, which can fail due to missing settings. Explicit provider selection is safer for multi-account resources.
+
+</details>
+
+### 79. How would you troubleshoot an STS AssumeRole AccessDenied error?
+
+<details><summary>Answer</summary>
+
+Verify the source identity, its permission to call `sts:AssumeRole` on the exact role ARN, the target role's trust policy, and any external ID, MFA, session-tag, or organization conditions. Then inspect the assumed role's permissions, SCPs, permissions boundaries, and explicit denies. Fix the missing boundary rather than granting broad administrator access.
+
+</details>
+
+### 80. What should you do if Terraform plans changes in the wrong AWS account?
+
+<details><summary>Answer</summary>
+
+Stop before apply. Verify account IDs and regions for each provider alias, inspect resource and module provider mappings, check the backend/workspace, and compare configuration, state, and live resources. Correct the mapping or plan a separately reviewed account migration. Do not delete state or assume changing an alias safely moves existing infrastructure.
+
+</details>
