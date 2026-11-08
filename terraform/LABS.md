@@ -502,3 +502,109 @@ Tasks:
 - What exact module-qualified resource address is affected?
 - Who owns the drifted attribute?
 - Does the final plan contain only intended changes?
+
+
+## DAY 8 — Provider Aliases and Multi-Account Patterns
+
+### Lab 1: Configure two AWS provider aliases
+
+In a sandbox organization with two approved AWS accounts, configure `aws.dev` and `aws.prod` in the root module. Use separate cross-account execution roles and the same test region.
+
+Tasks:
+
+1. Configure the AWS provider source/version once in `required_providers`.
+2. Configure both aliases with their approved role ARNs.
+3. Do not place access keys or secrets in HCL or commit them to Git.
+4. Add `aws_caller_identity` data sources using `provider = aws.dev` and `provider = aws.prod`.
+5. Run `terraform init`, `terraform validate`, and `terraform plan`.
+6. Verify that the returned account IDs match the approved dev and prod account inventory before proceeding.
+
+Expected data-source addresses:
+
+```text
+data.aws_caller_identity.dev
+data.aws_caller_identity.prod
+```
+
+### Lab 2: Route resources to the correct account
+
+Create one disposable S3 bucket per account using explicit provider selection.
+
+Tasks:
+
+1. Set `provider = aws.dev` on the dev bucket.
+2. Set `provider = aws.prod` on the prod bucket.
+3. Run `terraform plan -out=tfplan` and inspect it with `terraform show tfplan`.
+4. Record the addresses `aws_s3_bucket.dev` and `aws_s3_bucket.prod`.
+5. Confirm the account IDs and region for both provider configurations.
+6. Apply only after review and only in approved sandbox accounts.
+7. Run `terraform state list` and inspect both resources with `terraform state show`.
+
+### Lab 3: Pass aliases into a reusable child module
+
+Use one child module that declares `configuration_aliases = [aws.target]` and creates one S3 bucket through `aws.target`.
+
+Tasks:
+
+1. Call the module as `module.dev_bucket` and map `aws.target = aws.dev`.
+2. Call the same source as `module.prod_bucket` and map `aws.target = aws.prod`.
+3. Run `terraform providers`, `terraform validate`, and `terraform plan`.
+4. Record `module.dev_bucket.aws_s3_bucket.this` and `module.prod_bucket.aws_s3_bucket.this`.
+5. Confirm the module source is reusable and the root module controls the account selection.
+6. Apply only in disposable accounts after checking identity and plan.
+
+### Lab 4: Reproduce wrong-provider selection and recover
+
+Scenario: add a resource intended for production but omit its explicit provider mapping, or deliberately map the module to the dev provider.
+
+Tasks:
+
+1. Do not apply the incorrect plan.
+2. Inspect the provider argument or module `providers` map.
+3. Verify each alias with `aws_caller_identity`.
+4. Correct the provider mapping.
+5. Run `terraform plan` again and verify the destination account and exact resource addresses.
+6. Explain why an alias name alone is not proof of the target account.
+
+### Lab 5: Troubleshoot AssumeRole access denied
+
+Scenario: Terraform cannot assume the target account role.
+
+Tasks:
+
+1. Identify the source AWS identity.
+2. Check the source identity policy for `sts:AssumeRole` on the exact role ARN.
+3. Check the target role trust policy.
+4. Check required external ID, MFA, session tag, or organization conditions.
+5. Check the assumed role's permissions, SCPs, and permission boundaries.
+6. Fix only the missing policy condition or permission; do not grant blanket administrator access.
+7. Re-run identity verification and plan.
+
+### Lab 6: Provider mapping drift / account mismatch
+
+Scenario: a provider mapping or backend/workspace selection changes and Terraform proposes unexpected resource actions.
+
+Tasks:
+
+1. Stop before apply.
+2. Verify account ID and region for each alias.
+3. Inspect the exact state addresses and live objects.
+4. Compare configuration, state, and remote infrastructure.
+5. Determine whether the provider mapping, state backend, workspace, or physical resource ownership changed.
+6. Restore the approved mapping or design a separately reviewed account migration.
+7. Do not delete state or blindly run `state rm`.
+8. Re-run plan and confirm only approved actions remain.
+
+### Troubleshooting checklist
+
+- Which provider alias does each resource or module use?
+- What account ID and region does each alias actually resolve to?
+- Is the root module passing the intended provider configuration?
+- Has the child module declared the aliased provider in `configuration_aliases`?
+- Does the source identity have `sts:AssumeRole` permission?
+- Does the target role trust the source identity?
+- Does the assumed role have the required service permissions?
+- Could an SCP, permissions boundary, explicit deny, or session condition block the call?
+- Did the backend or workspace change?
+- Are resource addresses and physical resource ownership understood?
+- Does the final plan target only the intended account and region?
