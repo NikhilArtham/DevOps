@@ -608,3 +608,114 @@ Tasks:
 - Did the backend or workspace change?
 - Are resource addresses and physical resource ownership understood?
 - Does the final plan target only the intended account and region?
+
+
+## DAY 9 — Remote State with S3 Backend and State Locking
+
+### Lab 1: Bootstrap a secure S3 state bucket
+
+In a disposable AWS account, create a dedicated backend bucket using a separate bootstrap configuration.
+
+Tasks:
+
+1. Enable all four S3 Block Public Access settings.
+2. Enable bucket versioning.
+3. Enable server-side encryption; choose SSE-S3 for a basic exercise or SSE-KMS if you can configure and audit the key policy.
+4. Add a bucket policy requiring TLS.
+5. Restrict administrative and state access to approved roles.
+6. Confirm the bucket exists before configuring another root module to use it as a backend.
+7. Explain why a root module cannot create the bucket it needs in order to initialize its own S3 backend.
+
+### Lab 2: Configure S3 backend and native lockfile
+
+Add an S3 backend to a disposable root module:
+
+```hcl
+terraform {
+  required_version = ">= 1.10.0"
+
+  backend "s3" {
+    bucket       = "company-terraform-state"
+    key          = "training/dev/ap-south-1/terraform.tfstate"
+    region       = "ap-south-1"
+    encrypt      = true
+    use_lockfile = true
+  }
+}
+```
+
+Tasks:
+
+1. Replace the example bucket and key with your sandbox values.
+2. Run `terraform init`.
+3. Run `terraform plan`.
+4. Verify the state object exists at the expected key.
+5. Observe the lock object name ending in `.tflock` during a controlled operation if possible.
+6. Explain why versioning and locking solve different problems.
+
+### Lab 3: Trace backend permissions
+
+For one dedicated execution role, write a least-privilege policy for a single state key.
+
+Tasks:
+
+1. Grant `s3:ListBucket` on the bucket ARN with a prefix condition.
+2. Grant `s3:GetObject` and `s3:PutObject` on the state object.
+3. Grant `s3:GetObject`, `s3:PutObject`, and `s3:DeleteObject` on the matching lock object.
+4. If using SSE-KMS, configure and test the required KMS permissions and key policy.
+5. Explain why `ListBucket` uses a bucket ARN but object actions use object ARNs.
+6. Confirm no broad wildcard S3 access is required.
+
+### Lab 4: Reproduce AccessDenied and identify the denied statement
+
+Use a disposable bucket and role. Remove one required permission at a time, such as `s3:GetObject` on the state key or `s3:DeleteObject` on the lock key.
+
+Tasks:
+
+1. Run `aws sts get-caller-identity` in the same shell/job that runs Terraform.
+2. Run `terraform init` and `terraform plan`.
+3. Capture the exact denied operation and resource ARN from the error or CloudTrail S3 data event, if enabled.
+4. Identify the matching IAM, bucket-policy, endpoint-policy, or KMS statement.
+5. Restore only the required permission.
+6. Re-run the operation and confirm success.
+7. Explain why an explicit deny overrides an allow.
+
+### Lab 5: Test locking safely
+
+In a disposable root module and state key, run two controlled Terraform operations close together.
+
+Tasks:
+
+1. Observe how the second operation behaves while the first holds the state lock.
+2. Identify the lock object ending in `.tflock`.
+3. Confirm the lock is released when the operation completes.
+4. Do not use `terraform force-unlock` while a valid operation is running.
+5. Explain why locking protects against concurrent state writers but does not prevent all infrastructure drift.
+
+### Lab 6: Migrate local state to S3
+
+Tasks:
+
+1. Stop local and CI Terraform operations for the root module.
+2. Back up the local state securely.
+3. Verify backend bucket security, key, IAM, encryption, versioning, and lockfile access.
+4. Add the S3 backend block.
+5. Run `terraform init -migrate-state` and confirm the migration prompt only after checking the destination.
+6. Run `terraform state list` and `terraform plan`.
+7. Confirm existing resources are tracked and no unexpected create/destroy actions appear.
+8. Explain when `-reconfigure` differs from `-migrate-state`.
+
+### Troubleshooting checklist
+
+- Which AWS principal is Terraform actually using?
+- Is the bucket name, region, key, and workspace prefix correct?
+- Did the failure occur on ListBucket, GetObject, PutObject, lockfile access, or KMS?
+- Does the policy statement use the correct bucket ARN or object ARN?
+- Is the `s3:prefix` condition correct?
+- Is there an explicit deny in a bucket policy, SCP, endpoint policy, or permissions boundary?
+- Does the lockfile have the required Get/Put/Delete permissions?
+- If SSE-KMS is enabled, does the key policy allow the execution role?
+- Are public access blocks, versioning, encryption, and TLS enforcement enabled?
+- Is another Terraform operation holding the lock?
+- Was `-migrate-state` or `-reconfigure` chosen intentionally?
+- Does the final plan preserve existing infrastructure?
