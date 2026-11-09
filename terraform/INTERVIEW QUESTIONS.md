@@ -661,3 +661,86 @@ Verify the source identity, its permission to call `sts:AssumeRole` on the exact
 Stop before apply. Verify account IDs and regions for each provider alias, inspect resource and module provider mappings, check the backend/workspace, and compare configuration, state, and live resources. Correct the mapping or plan a separately reviewed account migration. Do not delete state or assume changing an alias safely moves existing infrastructure.
 
 </details>
+
+
+## DAY 9 — Remote State with S3 Backend and State Locking
+
+### 81. Why use a remote backend for Terraform state?
+
+<details><summary>Answer</summary>
+
+A remote backend gives a team and its CI/CD pipelines a shared state location instead of separate local copies. It supports controlled access, collaboration, and centralized state protection. State can contain sensitive values, so remote storage must be secured.
+
+</details>
+
+### 82. What is the purpose of the S3 backend?
+
+<details><summary>Answer</summary>
+
+The S3 backend stores Terraform state as an object in an S3 bucket. The backend configuration identifies the bucket, key, and region. It does not create the bucket; the bucket must exist before backend initialization.
+
+</details>
+
+### 83. How does native S3 state locking work?
+
+<details><summary>Answer</summary>
+
+With `use_lockfile = true`, the S3 backend creates a lock object alongside the state object, using the `.tflock` suffix. Competing Terraform operations cannot acquire the same state lock at the same time. Native S3 lockfiles require Terraform 1.10 or later.
+
+</details>
+
+### 84. Is S3 versioning the same as state locking?
+
+<details><summary>Answer</summary>
+
+No. Versioning preserves prior object versions and helps recover from accidental overwrites or deletions. Locking coordinates concurrent writers. Enable both; neither replaces the other.
+
+</details>
+
+### 85. What IAM permissions are needed for an S3 backend with lockfiles?
+
+<details><summary>Answer</summary>
+
+Typically, `s3:ListBucket` on the bucket with a suitable prefix condition; `s3:GetObject` and `s3:PutObject` on the state object; and `s3:GetObject`, `s3:PutObject`, and `s3:DeleteObject` on the lock object. Exact permissions depend on backend configuration, workspace use, bucket policy, and encryption design.
+
+</details>
+
+### 86. Why does `s3:ListBucket` use a different ARN from `s3:GetObject`?
+
+<details><summary>Answer</summary>
+
+`s3:ListBucket` is a bucket-level action and uses the bucket ARN, such as `arn:aws:s3:::company-terraform-state`. Object actions such as GetObject and PutObject use object ARNs, such as `arn:aws:s3:::company-terraform-state/path/terraform.tfstate`.
+
+</details>
+
+### 87. What is the purpose of S3 Block Public Access, encryption, and versioning?
+
+<details><summary>Answer</summary>
+
+Block Public Access prevents public ACL or policy exposure. Encryption protects stored state at rest. Versioning preserves previous object versions for recovery. These controls address different risks and should be combined with least-privilege IAM and bucket policies.
+
+</details>
+
+### 88. How do you troubleshoot an S3 backend AccessDenied error?
+
+<details><summary>Answer</summary>
+
+Identify the actual AWS principal with STS, then determine whether the failed operation is ListBucket, GetObject, PutObject, lockfile access, or KMS. Match the action and resource ARN to identity policies, bucket policy, endpoint policy, SCPs, permissions boundaries, and KMS key policy. Fix the missing permission or conflicting condition rather than granting broad S3 access.
+
+</details>
+
+### 89. What is the difference between `terraform init -migrate-state` and `terraform init -reconfigure`?
+
+<details><summary>Answer</summary>
+
+`-migrate-state` asks Terraform to copy existing state to the newly configured backend. `-reconfigure` initializes the working directory with the new backend configuration without migrating the previous state. Choose based on whether state must be moved, and back up state before migration.
+
+</details>
+
+### 90. When is `terraform force-unlock` appropriate?
+
+<details><summary>Answer</summary>
+
+Only when you have verified that the lock belongs to an operation that is no longer running and your team procedure permits unlocking it. Force-unlocking a valid active operation can allow concurrent state modifications and corrupt state. A slow pipeline is not sufficient reason to force-unlock.
+
+</details>
