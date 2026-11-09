@@ -12,6 +12,7 @@ Terraform is the infrastructure-as-code track for this repository.
 - [x] DAY 6 — Reusable Terraform Module Design
 - [x] DAY 7 — Module Inputs, Outputs, Validation and Documentation
 - [x] DAY 8 — Provider Aliases and Multi-Account Patterns
+- [x] DAY 9 — Remote State with S3 Backend and State Locking
 
 ## Topics
 
@@ -23,7 +24,7 @@ Terraform is the infrastructure-as-code track for this repository.
 | 2 | Variables, locals, outputs and type constraints | [DAY 2](DAY%202%20-%20Variables%20Locals%20Outputs%20and%20Type%20Constraints.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 | 3 | Resource lifecycle, dependencies and replace behavior | [DAY 3](DAY%203%20-%20Resource%20Lifecycle%20Dependencies%20and%20Replace%20Behavior.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 | 4 | `count` vs `for_each` and stable resource addressing | [DAY 4](DAY%204%20-%20Count%20vs%20For%20Each%20and%20Stable%20Resource%20Addressing.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
-| 5 | Dynamic blocks, expressions and conditional infrastructure | [DAY 5](DAY%205%20-%20Dynamic%20Blocks%20Expressions%20and%20Conditional%20Infrastructure.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |\n| 6 | Reusable Terraform module design | [DAY 6](DAY%206%20-%20Reusable%20Terraform%20Module%20Design.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |\n| 7 | Module inputs, outputs, validation and documentation | [DAY 7](DAY%207%20-%20Module%20Inputs%20Outputs%20Validation%20and%20Documentation.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |\n| 8 | Provider aliases and multi-account patterns | [DAY 8](DAY%208%20-%20Provider%20Aliases%20and%20Multi%20Account%20Patterns.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
+| 5 | Dynamic blocks, expressions and conditional infrastructure | [DAY 5](DAY%205%20-%20Dynamic%20Blocks%20Expressions%20and%20Conditional%20Infrastructure.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |\n| 6 | Reusable Terraform module design | [DAY 6](DAY%206%20-%20Reusable%20Terraform%20Module%20Design.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |\n| 7 | Module inputs, outputs, validation and documentation | [DAY 7](DAY%207%20-%20Module%20Inputs%20Outputs%20Validation%20and%20Documentation.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |\n| 8 | Provider aliases and multi-account patterns | [DAY 8](DAY%208%20-%20Provider%20Aliases%20and%20Multi%20Account%20Patterns.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |\n| 9 | Remote state with S3 backend and state locking | [DAY 9](DAY%209%20-%20Remote%20State%20with%20S3%20Backend%20and%20State%20Locking.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 
 ## Centralized files
 
@@ -92,3 +93,14 @@ Terraform is the infrastructure-as-code track for this repository.
 - Understand default-provider behavior and avoid accidental account selection.
 - Inspect provider requirements, plans, state addresses, and account identity.
 - Recover safely from wrong-provider selection, AssumeRole failures, and account/state mismatches.
+
+
+## Day 9 focus
+
+- Understand why teams use remote state and why state must be treated as sensitive data.
+- Bootstrap a dedicated S3 backend bucket separately from the root module that consumes it.
+- Configure the S3 backend with native lockfiles using `use_lockfile = true`.
+- Trace S3 bucket policy, IAM, object ARNs, prefix conditions, encryption, versioning, TLS, and public-access controls.
+- Diagnose AccessDenied by identifying the exact denied S3 or KMS operation and matching policy statement.
+- Migrate local state safely with `terraform init -migrate-state`.
+- Distinguish state locking from versioning and use `force-unlock` only after verifying a stale lock.
