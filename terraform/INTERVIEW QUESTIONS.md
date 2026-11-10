@@ -744,3 +744,86 @@ Identify the actual AWS principal with STS, then determine whether the failed op
 Only when you have verified that the lock belongs to an operation that is no longer running and your team procedure permits unlocking it. Force-unlocking a valid active operation can allow concurrent state modifications and corrupt state. A slow pipeline is not sufficient reason to force-unlock.
 
 </details>
+
+
+## DAY 10 — State Isolation for Dev, QA and Production
+
+### 91. Why should dev, QA, and production use separate Terraform states?
+
+<details><summary>Answer</summary>
+
+Separate states isolate each environment's resource mapping, plans, locking, and lifecycle. A dev change should not modify production state or create a shared-state blast radius. Separate states also support different deployment schedules and approvals. They should be combined with separate credentials and, preferably, separate AWS accounts for production.
+
+</details>
+
+### 92. Can dev, QA, and prod use the same Terraform configuration?
+
+<details><summary>Answer</summary>
+
+Yes. Reuse the same root module or reusable child modules, but supply environment-specific variables, backend configuration, and credentials. The code can be identical while each environment has a separate state key and potentially a different AWS account.
+
+</details>
+
+### 93. What is the difference between a Terraform workspace and a separate backend key?
+
+<details><summary>Answer</summary>
+
+Workspaces create multiple state instances within one configured backend. Separate backend keys explicitly select different remote state objects. Workspaces can be convenient for similar environments, but they do not automatically provide different credentials or AWS accounts and are not a security boundary. Separate keys and roles are often clearer for production controls.
+
+</details>
+
+### 94. Does using separate S3 state keys guarantee production isolation?
+
+<details><summary>Answer</summary>
+
+No. Different keys isolate state objects, but a role with broad S3 permissions may still access all keys, and AWS credentials may still have permission to modify production resources. Restrict state-prefix access, use separate deployment roles, and preferably place production in a separate AWS account.
+
+</details>
+
+### 95. Why can the same Terraform resource address exist in multiple environment states?
+
+<details><summary>Answer</summary>
+
+A resource address is a logical identity within a particular Terraform state. For example, `aws_s3_bucket.app` can exist in both dev and prod states while mapping to different physical bucket names. The state key determines which environment's mapping Terraform reads.
+
+</details>
+
+### 96. How do you verify that a pipeline is targeting the correct environment?
+
+<details><summary>Answer</summary>
+
+Verify the backend bucket and key, the variable file, the selected workspace if used, and the AWS identity with `aws sts get-caller-identity`. Inspect `terraform state list`, the relevant `terraform state show` output, and the full plan. Do not rely only on a folder or pipeline name.
+
+</details>
+
+### 97. What should you do if a QA pipeline accidentally uses the dev backend?
+
+<details><summary>Answer</summary>
+
+Stop before apply. Identify the actual backend key and AWS principal, then initialize a clean QA working directory against the correct QA key. Use `terraform init -reconfigure` when selecting the correct existing backend without migrating the wrongly selected state. Do not blindly use `-migrate-state`, because it may copy dev state into QA. Inspect state and generate a fresh plan before proceeding.
+
+</details>
+
+### 98. Does changing the backend key change the physical infrastructure?
+
+<details><summary>Answer</summary>
+
+Changing the backend key changes which state object Terraform reads and writes; it does not itself move or rename AWS resources. If the selected state is empty or belongs to another environment, Terraform may propose creating or destroying resources. Review the state mapping and plan before applying.
+
+</details>
+
+### 99. How would you troubleshoot drift in dev without affecting production?
+
+<details><summary>Answer</summary>
+
+Initialize the dev backend in an isolated working directory, verify the AWS account and role, then run a plan and identify the exact resource address. Reconcile the drift according to the agreed ownership model. Run QA and production plans separately to confirm they remain unchanged. Separate state keys and credentials prevent the dev operation from writing to production state.
+
+</details>
+
+### 100. What are the key production guardrails for Terraform state isolation?
+
+<details><summary>Answer</summary>
+
+Use a separate production AWS account and deployment role, restrict S3 state access to the required prefix, protect the state bucket with encryption/versioning/public-access controls/TLS and locking, isolate CI working directories, require protected approvals, verify account identity and backend key, and review the saved plan before apply.
+
+</details>
