@@ -719,3 +719,78 @@ Tasks:
 - Is another Terraform operation holding the lock?
 - Was `-migrate-state` or `-reconfigure` chosen intentionally?
 - Does the final plan preserve existing infrastructure?
+
+
+## DAY 10 — State Isolation for Dev, QA and Production
+
+### Lab 1: Configure three independent state keys
+
+Use the small S3 bucket configuration from DAY 10 in a disposable AWS account. Ensure the backend bucket already exists and has versioning, encryption, public-access blocks, and native S3 lockfiles enabled.
+
+Tasks:
+
+1. Create separate backend config files for dev, QA, and prod.
+2. Use keys:
+   - `application/dev/ap-south-1/terraform.tfstate`
+   - `application/qa/ap-south-1/terraform.tfstate`
+   - `application/prod/ap-south-1/terraform.tfstate`
+3. Use a different globally unique bucket name in each environment's tfvars.
+4. Initialize each environment in a separate clean working directory or isolated CI workspace.
+5. Run `terraform plan` and save the plan for review.
+6. Apply only in the disposable test account.
+7. Record the exact resource address `aws_s3_bucket.app`, the state key, AWS account ID, and physical bucket name for each environment.
+8. Confirm that each state contains only its own environment's object.
+
+### Lab 2: Prove state isolation
+
+Tasks:
+
+1. Run `terraform state list` in dev, QA, and prod working directories.
+2. Run `terraform state show aws_s3_bucket.app` in each.
+3. Compare the resource address and physical bucket name.
+4. Confirm the address is identical but the physical bucket identifiers differ.
+5. Confirm the S3 state keys and corresponding `.tflock` objects are distinct.
+6. Change only the dev variable file and plan again.
+7. Verify the QA and prod states and plans remain unchanged.
+
+### Lab 3: Reproduce a wrong-backend selection safely
+
+Scenario: a QA job accidentally uses the dev backend config file.
+
+Tasks:
+
+1. Do not apply.
+2. Capture the configured backend key and `aws sts get-caller-identity` output.
+3. Compare the intended QA key, actual initialized key, AWS account, and variable file.
+4. Reinitialize a clean QA working directory with the correct QA backend using `terraform init -reconfigure -backend-config=...`.
+5. Do not use `-migrate-state` to copy the incorrectly selected dev state into QA.
+6. Run `terraform state list` and inspect `aws_s3_bucket.app`.
+7. Run a fresh QA plan and confirm it does not propose changes to the dev bucket.
+8. If state was already copied or modified, stop and use the approved S3 version recovery process; never hand-edit state JSON.
+
+### Lab 4: Create and recover environment-specific drift
+
+Scenario: an operator changes the dev bucket's tag outside Terraform.
+
+Tasks:
+
+1. Change a tag only on the dev test bucket using an approved AWS console/CLI operation.
+2. Run the dev plan and identify drift at `aws_s3_bucket.app`.
+3. Confirm the dev backend key and AWS account before acting.
+4. Reconcile the tag through Terraform if Terraform owns it.
+5. Run a fresh dev plan and verify the intended correction.
+6. Run QA and prod plans separately; confirm neither environment is affected.
+7. Record the state key, account ID, resource address, and physical bucket name in the lab notes.
+
+### Troubleshooting checklist
+
+- Which backend bucket and exact key is initialized?
+- Which AWS account and role does `aws sts get-caller-identity` report?
+- Which variable file was supplied?
+- Is the working directory using stale `.terraform` backend metadata?
+- Does `terraform state list` show only the intended environment's resources?
+- Does `terraform state show aws_s3_bucket.app` map to the expected physical bucket?
+- Are the state object and lockfile keys different across environments?
+- Does a dev-only change leave QA and prod plans unchanged?
+- Was `-reconfigure` or `-migrate-state` selected intentionally?
+- Has every destructive or replacement action been explained before apply?
