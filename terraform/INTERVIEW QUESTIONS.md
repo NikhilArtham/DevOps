@@ -827,3 +827,86 @@ Initialize the dev backend in an isolated working directory, verify the AWS acco
 Use a separate production AWS account and deployment role, restrict S3 state access to the required prefix, protect the state bucket with encryption/versioning/public-access controls/TLS and locking, isolate CI working directories, require protected approvals, verify account identity and backend key, and review the saved plan before apply.
 
 </details>
+
+
+## DAY 11 — Import, State MV and State RM
+
+### 101. What does terraform import do?
+
+<details><summary>Answer</summary>
+
+It associates an existing remote object with a Terraform resource address in state. It does not create the object and does not automatically generate the complete resource configuration. After import, inspect the state and run a plan to reconcile the HCL with the real object.
+
+</details>
+
+### 102. What are the two arguments to terraform import?
+
+<details><summary>Answer</summary>
+
+The first is the Terraform resource address, such as aws_s3_bucket.app. The second is the provider-specific import identifier for the existing object, such as an S3 bucket name. The required identifier varies by resource type and provider.
+
+</details>
+
+### 103. What is the difference between CLI import and an import block?
+
+<details><summary>Answer</summary>
+
+The CLI terraform import command directly adds the binding to state. An import block declares the target address and remote ID in configuration so the import can be reviewed through terraform plan and applied. Both adopt existing objects; choose the workflow that matches the team's Terraform version and review process.
+
+</details>
+
+### 104. What does terraform state mv do?
+
+<details><summary>Answer</summary>
+
+It changes the Terraform address associated with an object in state without deleting or recreating the real infrastructure. It is useful when renaming a resource label, moving a resource into a module, or changing an instance address. The destination configuration must represent the same object.
+
+</details>
+
+### 105. What is the difference between terraform state mv and a moved block?
+
+<details><summary>Answer</summary>
+
+terraform state mv performs a direct state operation from the CLI. A moved block declares the old and new addresses in configuration, making the migration source-controlled and reviewable in a plan. For normal code refactors, moved blocks are often preferable; state mv remains useful for controlled state surgery.
+
+</details>
+
+### 106. Does terraform state rm delete the actual AWS resource?
+
+<details><summary>Answer</summary>
+
+No. It removes the resource binding from the current Terraform state while leaving the real object in place. If the resource block remains in configuration, a subsequent plan will normally propose creating a new object. Remove or transfer the configuration and ownership deliberately.
+
+</details>
+
+### 107. How do you safely import an existing resource?
+
+<details><summary>Answer</summary>
+
+Verify the provider/account context and remote object ID, ensure the target address is not already tracked, declare matching resource configuration, back up state, and import the object. Then inspect terraform state show and run terraform plan. Reconcile any differences before applying.
+
+</details>
+
+### 108. Why might terraform plan show destroy and create after a resource rename?
+
+<details><summary>Answer</summary>
+
+Terraform sees the old address as no longer configured and the new address as a new resource unless it is told that the addresses represent the same object. Use a correct moved block or controlled terraform state mv, then run a fresh plan and verify that no physical replacement is proposed.
+
+</details>
+
+### 109. What happens if you run terraform state rm but leave the resource block in HCL?
+
+<details><summary>Answer</summary>
+
+The resource remains declared in configuration but is no longer tracked in state. Terraform normally proposes creating a new resource to satisfy that configuration. Do not apply blindly; either re-import the existing object or remove/refactor the old declaration as part of a coordinated ownership transfer.
+
+</details>
+
+### 110. What precautions should you take before state surgery?
+
+<details><summary>Answer</summary>
+
+Back up state securely, stop concurrent operations, respect backend locking, verify the account/backend/workspace, inspect exact source and destination addresses, confirm physical object identity, and run a fresh plan afterward. State backups may contain secrets and must never be committed to Git. Never use state rm as a shortcut for destroying infrastructure.
+
+</details>
