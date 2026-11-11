@@ -14,6 +14,7 @@ Terraform is the infrastructure-as-code track for this repository.
 - [x] DAY 8 — Provider Aliases and Multi-Account Patterns
 - [x] DAY 9 — Remote State with S3 Backend and State Locking
 - [x] DAY 10 — State Isolation for Dev, QA and Production
+- [x] DAY 11 — Terraform Import, State MV and State RM
 
 ## Topics
 
@@ -27,6 +28,7 @@ Terraform is the infrastructure-as-code track for this repository.
 | 4 | `count` vs `for_each` and stable resource addressing | [DAY 4](DAY%204%20-%20Count%20vs%20For%20Each%20and%20Stable%20Resource%20Addressing.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 | 5 | Dynamic blocks, expressions and conditional infrastructure | [DAY 5](DAY%205%20-%20Dynamic%20Blocks%20Expressions%20and%20Conditional%20Infrastructure.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |\n| 6 | Reusable Terraform module design | [DAY 6](DAY%206%20-%20Reusable%20Terraform%20Module%20Design.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |\n| 7 | Module inputs, outputs, validation and documentation | [DAY 7](DAY%207%20-%20Module%20Inputs%20Outputs%20Validation%20and%20Documentation.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |\n| 8 | Provider aliases and multi-account patterns | [DAY 8](DAY%208%20-%20Provider%20Aliases%20and%20Multi%20Account%20Patterns.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |\n| 9 | Remote state with S3 backend and state locking | [DAY 9](DAY%209%20-%20Remote%20State%20with%20S3%20Backend%20and%20State%20Locking.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 | 10 | State isolation for dev, QA and production | [DAY 10](DAY%2010%20-%20State%20Isolation%20for%20Dev%20QA%20and%20Production.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
+| 11 | Import, state mv and state rm | [DAY 11](DAY%2011%20-%20Terraform%20Import%20State%20Mv%20and%20State%20Rm.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 
 ## Centralized files
 
@@ -117,3 +119,13 @@ Terraform is the infrastructure-as-code track for this repository.
 - Reproduce and safely recover from a wrong-backend selection without migrating the wrong state.
 - Detect and reconcile drift in one environment while confirming other environments remain unchanged.
 - Apply production guardrails: least-privilege state-prefix access, separate roles/accounts, protected approvals, encryption, versioning, and locking.
+
+
+## Day 11 focus
+
+- Adopt an existing AWS resource with terraform import and understand provider-specific import IDs.
+- Distinguish CLI import from declarative import blocks.
+- Rename resource addresses and move resources into modules with terraform state mv or moved blocks.
+- Remove a state binding with terraform state rm without deleting the real infrastructure.
+- Inspect exact addresses and physical identifiers before and after every state operation.
+- Back up state, prevent concurrent changes, and recover safely from incorrect imports, address migrations, and accidental state removal.
