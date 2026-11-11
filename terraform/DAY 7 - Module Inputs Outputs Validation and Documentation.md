@@ -181,26 +181,43 @@ The child module should export `bucket_id` and `bucket_arn`. The root should pas
 
 ## 6. Document the module for another engineer
 
-A module README should answer:
-1. What does the module create, and what does it not create?
-2. How do I call it?
-3. Which inputs are required and which have defaults?
-4. What outputs can I consume?
-5. Which provider versions and permissions are needed?
-6. What security, cost, naming, and lifecycle considerations apply?
-7. How do I validate and test a change?
+A good module README is a small user guide. Another engineer should be able to understand the module and use it without opening every Terraform file.
 
-Example `modules/s3_bucket/README.md`:
+Keep the README in the module directory:
 
-```markdown
+~~~text
+modules/
+└── s3_bucket/
+    ├── main.tf
+    ├── variables.tf
+    ├── outputs.tf
+    └── README.md
+~~~
+
+### What the README should contain
+
+1. **Purpose** — what the module creates and what it deliberately does not create.
+2. **Usage** — a complete, realistic module call that another engineer can copy.
+3. **Inputs** — each input's name, type, whether it is required, its default, and what it controls.
+4. **Outputs** — each output's name and what a caller can use it for.
+5. **Requirements** — Terraform and provider versions, plus provider configuration expectations.
+6. **Security and operations** — permissions, encryption, public access, naming, cost, state, and lifecycle considerations.
+7. **Validation** — the commands and checks to run before a change is merged.
+
+### Example: modules/s3_bucket/README.md
+
+~~~markdown
 # S3 Bucket Module
 
-Creates a private S3 bucket with public-access blocking, server-side encryption,
-and configurable versioning.
+## Purpose
+
+Creates an S3 bucket with public access blocked, server-side encryption enabled, and optional object versioning.
+
+This module does not configure the AWS provider or create the Terraform state backend. The calling root module owns provider configuration and backend setup.
 
 ## Usage
 
-\`\`\`hcl
+~~~hcl
 module "data_bucket" {
   source = "./modules/s3_bucket"
 
@@ -213,33 +230,55 @@ module "data_bucket" {
     Project = "data-platform"
   }
 }
-\`\`\`
+~~~
 
 ## Inputs
 
-| Name | Type | Required | Default | Description |
-|---|---|---:|---|---|
-| bucket_name | string | yes | — | Globally unique bucket name |
-| environment | string | yes | — | dev, test, or prod |
-| tags | map(string) | no | {} | Additional tags |
-| enable_versioning | bool | no | true | Enable object versioning |
+### Required
+
+- **bucket_name** — `string`; no default. Globally unique S3 bucket name. Use 3–63 lowercase letters, numbers, dots, or hyphens.
+- **environment** — `string`; no default. Allowed values: `dev`, `test`, or `prod`.
+
+### Optional
+
+- **tags** — `map(string)`; default: `{}`. Additional tags applied to the bucket. The module sets `Environment` and `ManagedBy` after merging, so those module-owned values take precedence if the caller supplies the same keys.
+- **enable_versioning** — `bool`; default: `true`. Enables or suspends S3 bucket versioning according to the module implementation.
 
 ## Outputs
 
-| Name | Description |
-|---|---|
-| bucket_id | Bucket name/ID |
-| bucket_arn | Bucket ARN |
+- **bucket_id** — bucket name/ID. Useful when another resource needs the bucket identifier.
+- **bucket_arn** — bucket ARN. Useful in IAM policies and other AWS resource configurations.
 
-## Requirements and notes
+## Requirements
 
-- AWS provider configured by the calling root module.
-- Bucket names must be globally unique.
-- Public access is blocked and server-side encryption is enabled.
-- Protect the Terraform state backend and review plans before applying.
-```
+- Terraform version: use the minimum version declared by the root configuration.
+- AWS provider: configured by the calling root module; this module does not create provider credentials.
+- The caller must have permissions to create and manage the bucket and its security configuration.
 
-Keep the README accurate. Update examples, input/output tables, security notes, and tests whenever behavior changes.
+## Security and operational notes
+
+- S3 bucket names are globally unique across AWS.
+- Public access blocking and server-side encryption are enabled by this module.
+- Versioning is enabled by default; confirm the retention and storage-cost implications for the workload.
+- Keep Terraform state in a secured remote backend with encryption, access controls, and locking.
+- Review the Terraform plan before applying changes, especially changes to encryption, versioning, or bucket identity.
+
+## Validate changes
+
+Run these commands from the root configuration that calls the module:
+
+~~~bash
+terraform fmt -recursive
+terraform init
+terraform validate
+terraform plan
+~~~
+
+Review the plan and confirm that it contains only the intended changes before applying.
+~~~
+
+
+Keep the README synchronized with the actual HCL. If an input, default, output, security behavior, or requirement changes, update this document in the same pull request.
 
 ## 7. Commands and exact addresses
 
