@@ -794,3 +794,85 @@ Tasks:
 - Does a dev-only change leave QA and prod plans unchanged?
 - Was `-reconfigure` or `-migrate-state` selected intentionally?
 - Has every destructive or replacement action been explained before apply?
+
+
+## DAY 11 — Import, State MV and State RM
+
+### Lab 1: Import an existing S3 bucket
+
+Use a disposable AWS account and a bucket that already exists but is not tracked by the current Terraform state.
+
+Tasks:
+
+1. Declare an aws_s3_bucket resource block that matches the existing bucket.
+2. Run terraform state list and confirm the target address is absent.
+3. Verify the AWS account and region.
+4. Back up state using the approved procedure.
+5. Run terraform import with address aws_s3_bucket.app and the bucket's provider-specific import ID.
+6. Run terraform state list and terraform state show aws_s3_bucket.app.
+7. Run terraform plan and reconcile configuration with the live bucket.
+8. Record the Terraform address and physical bucket name. Do not apply unexplained changes.
+
+### Lab 2: Rename a resource address with state mv
+
+Scenario: rename aws_s3_bucket.app to aws_s3_bucket.application without replacing the bucket.
+
+Tasks:
+
+1. Back up state and stop concurrent Terraform operations.
+2. Update the resource label in HCL.
+3. Run terraform state mv aws_s3_bucket.app aws_s3_bucket.application.
+4. Run terraform state list and terraform state show aws_s3_bucket.application.
+5. Run terraform plan.
+6. Confirm there is no destroy/create solely due to the address rename.
+7. Compare the physical bucket identifier before and after.
+
+### Lab 3: Move a resource into a child module
+
+Scenario: refactor a root resource into module.app_bucket.
+
+Tasks:
+
+1. Create the destination module and ensure its resource represents the same physical bucket.
+2. Back up state.
+3. Move the binding from aws_s3_bucket.app to module.app_bucket.aws_s3_bucket.this.
+4. Inspect the new address using terraform state list and terraform state show.
+5. Run terraform plan.
+6. Confirm the plan recognizes the address migration and does not replace the bucket.
+7. Consider whether a source-controlled moved block is a better long-term migration.
+
+### Lab 4: Remove a resource from state without deleting it
+
+Scenario: hand an existing bucket to another Terraform root module.
+
+Tasks:
+
+1. Confirm the receiving owner is ready and the ownership transfer is coordinated.
+2. Back up state and stop concurrent operations.
+3. Run terraform state rm aws_s3_bucket.app.
+4. Verify the bucket still exists in AWS.
+5. Inspect the old configuration and run terraform plan without applying.
+6. Explain why leaving the resource block causes Terraform to propose creating a new bucket.
+7. Remove/refactor the old declaration or complete a coordinated state handoff.
+8. Confirm the new owner has a valid state binding and only one state manages the object.
+
+### Lab 5: Failure recovery drills
+
+Run these only in disposable state and infrastructure:
+
+- Import the wrong bucket ID, detect the mismatch with state show, and correct the binding safely.
+- Rename HCL but omit the state move; inspect the destroy/create plan and recover with a moved block or state mv.
+- Run state rm while the resource block remains; observe the proposed create and explain why applying it is unsafe.
+- Attempt a state operation while another operation is active; understand why the backend lock must not be bypassed.
+
+### Troubleshooting checklist
+
+- What is the exact Terraform address?
+- What physical object ID does the state map to?
+- Is the import ID correct for this provider resource?
+- Is the destination address already occupied?
+- Does the HCL destination represent the same physical object?
+- Was state backed up and are concurrent operations stopped?
+- Is the intended operation import, address move, or relinquishing ownership?
+- Does state rm leave a resource block that would trigger a create?
+- Does the fresh plan show only the intended migration?
