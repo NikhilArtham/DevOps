@@ -876,3 +876,68 @@ Run these only in disposable state and infrastructure:
 - Is the intended operation import, address move, or relinquishing ownership?
 - Does state rm leave a resource block that would trigger a create?
 - Does the fresh plan show only the intended migration?
+
+## Day 12 — Drift detection and reconciliation
+
+### Lab 1: Detect a tag drift on an S3 bucket
+
+Create a disposable S3 bucket with Terraform at `aws_s3_bucket.app`, using tags `Environment = "dev"` and `ManagedBy = "Terraform"`.
+
+1. Apply the baseline configuration.
+2. Record the bucket name and inspect `terraform state show aws_s3_bucket.app`.
+3. Change the live Environment tag to `prod` using AWS CLI or the AWS console, without changing HCL.
+4. Run `terraform plan` and capture the exact address and proposed action.
+5. Explain why this is drift and why the physical bucket identity has not changed.
+
+### Lab 2: Reconcile when Terraform owns the tag
+
+1. Keep HCL as the source of truth (`Environment = "dev"`).
+2. Confirm the active AWS identity, region, backend key, and workspace.
+3. Review the plan and verify only the intended tag correction is proposed.
+4. Save and inspect a plan, then apply only after review.
+5. Run a fresh plan and inspect the state and live tag.
+6. Record evidence that the resource was updated in-place and not replaced.
+
+### Lab 3: Accept an intentional remote change using refresh-only
+
+1. Change a tag out-of-band and decide that the new value is approved.
+2. Run `terraform plan -refresh-only` and inspect the proposed state changes.
+3. Apply refresh-only only if the remote value should become the recorded state reality.
+4. Run `terraform state show aws_s3_bucket.app`.
+5. Run a normal `terraform plan` and explain why HCL still matters.
+6. Update HCL to the approved value and verify the next normal plan is consistent.
+
+### Lab 4: Investigate an unexpected replacement
+
+Use a disposable resource. Introduce a change that causes the provider to require replacement, or inspect a provided replacement plan.
+
+1. Stop before apply.
+2. Identify the exact address and attribute causing replacement.
+3. Confirm account, region, provider alias, backend key, and workspace.
+4. Inspect the current state and physical identifier.
+5. Determine whether the change is intended and whether it has data/downtime impact.
+6. Correct the source of truth or escalate for approval; do not delete state or blindly apply.
+7. Produce a fresh plan and explain why the replacement is now expected or avoided.
+
+### Lab 5: Ownership and ignore_changes decision
+
+An external controller owns one specific tag while Terraform owns the rest of the bucket.
+
+1. Document which system owns the tag and why.
+2. Decide whether `ignore_changes` is justified for that one attribute.
+3. Add a narrowly scoped lifecycle rule only in a disposable configuration.
+4. Change the externally owned tag and run plan.
+5. Confirm Terraform no longer proposes to manage that attribute while still detecting changes to Terraform-owned attributes.
+6. Explain the security and audit risk of broad `ignore_changes` rules.
+
+### Troubleshooting checklist
+
+- Am I using the intended AWS account, region, provider alias, backend key, and workspace?
+- What exact Terraform address and physical ID are involved?
+- Which attribute drifted, and can the provider read it?
+- Who changed it, when, and through which system?
+- Is HCL, the live resource, or an external controller the source of truth?
+- Does the plan propose an in-place update, replacement, create, or destroy?
+- Have I reviewed the full plan and data/downtime impact?
+- Should I reconcile infrastructure or intentionally accept remote values into state?
+- Did I run a fresh plan and verify the final state?
