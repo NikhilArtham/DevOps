@@ -910,3 +910,83 @@ The resource remains declared in configuration but is no longer tracked in state
 Back up state securely, stop concurrent operations, respect backend locking, verify the account/backend/workspace, inspect exact source and destination addresses, confirm physical object identity, and run a fresh plan afterward. State backups may contain secrets and must never be committed to Git. Never use state rm as a shortcut for destroying infrastructure.
 
 </details>
+
+### 111. What is Terraform drift?
+
+<details><summary>Answer</summary>
+
+Drift is a difference between the real infrastructure and the desired configuration or recorded state, commonly caused by manual console/CLI changes or another automation system modifying a Terraform-managed resource. Terraform detects drift for attributes it can refresh and manage through the provider.
+
+</details>
+
+### 112. How does Terraform detect drift?
+
+<details><summary>Answer</summary>
+
+During a normal plan, Terraform refreshes managed resource information from provider APIs and compares the refreshed values with configuration. It then proposes actions to reconcile differences. Detection is limited to attributes the provider exposes and Terraform manages; a plan is not a complete audit of every cloud setting.
+
+</details>
+
+### 113. What is the difference between a normal plan and a refresh-only plan?
+
+<details><summary>Answer</summary>
+
+A normal `terraform plan` compares refreshed remote values with HCL and can propose infrastructure changes. `terraform plan -refresh-only` previews changes to Terraform state so it can reflect remote reality, without proposing changes to the remote infrastructure. `terraform apply -refresh-only` records those refreshed values in state but does not update HCL.
+
+</details>
+
+### 114. If someone changes an AWS tag manually, what should you do?
+
+<details><summary>Answer</summary>
+
+Identify the exact resource address and physical object, verify account/backend/workspace, and determine who owns the tag. If Terraform owns it, review a plan that restores the declared value and apply through the approved workflow. If the change is approved, update HCL or deliberately accept the remote value with a refresh-only workflow. Do not blindly apply.
+
+</details>
+
+### 115. Does terraform apply -refresh-only fix infrastructure drift?
+
+<details><summary>Answer</summary>
+
+No. It updates Terraform's state snapshot to reflect remote values; it does not change the remote resource to match HCL. If configuration still differs, a later normal plan can propose changing the infrastructure again. Update HCL too when the remote change is approved as the new desired state.
+
+</details>
+
+### 116. When is lifecycle ignore_changes appropriate?
+
+<details><summary>Answer</summary>
+
+When another system intentionally owns specific attributes and Terraform should not reconcile those attributes. Scope the rule narrowly, document ownership, and preserve monitoring and security controls. Broadly ignoring attributes merely to hide drift can conceal unauthorized or risky changes.
+
+</details>
+
+### 117. What would you do if a production drift plan shows resource replacement?
+
+<details><summary>Answer</summary>
+
+Stop before apply. Verify AWS identity, region, backend key, workspace, provider alias, exact address, physical ID, and the attribute forcing replacement. Investigate the change history and data/downtime impact, determine the source of truth, and obtain the required owner approval. Generate a fresh reviewed plan before proceeding.
+
+</details>
+
+### 118. Why can terraform plan show no changes even when the cloud account has unmanaged changes?
+
+<details><summary>Answer</summary>
+
+Terraform only evaluates resources and attributes represented by the current configuration/state and exposed through provider read operations. Unmanaged resources, ignored attributes, unsupported fields, eventual consistency, or the wrong account/workspace/backend can prevent a particular change from appearing. A Terraform plan is not a full cloud security or configuration audit.
+
+</details>
+
+### 119. Should you use terraform state rm to resolve drift?
+
+<details><summary>Answer</summary>
+
+No. `terraform state rm` removes Terraform's binding to an object; it does not reconcile the remote resource. If the resource block remains, Terraform may propose creating another object. Use state removal only for a deliberate ownership handoff or state-management operation.
+
+</details>
+
+### 120. Explain your drift reconciliation workflow.
+
+<details><summary>Answer</summary>
+
+Detect drift with a normal plan, identify the exact Terraform address and physical object, verify account/backend/workspace, inspect the changed attributes and audit history, and determine which system owns the change. Review the proposed action and its impact. Reconcile HCL or the remote resource according to that ownership decision, apply through the approved workflow, and verify with a fresh plan and state inspection.
+
+</details>
