@@ -129,3 +129,14 @@ Terraform is the infrastructure-as-code track for this repository.
 - Remove a state binding with terraform state rm without deleting the real infrastructure.
 - Inspect exact addresses and physical identifiers before and after every state operation.
 - Back up state, prevent concurrent changes, and recover safely from incorrect imports, address migrations, and accidental state removal.
+
+
+## Day 12 focus
+
+- Understand configuration, state, and real infrastructure as separate sources of information.
+- Detect out-of-band changes with a normal Terraform plan and inspect the exact resource address.
+- Distinguish normal reconciliation from refresh-only state synchronization.
+- Decide whether Terraform, an approved manual change, or an external controller owns each attribute.
+- Review in-place updates versus replacements and safely recover from unexpected production plans.
+- Use `ignore_changes` only for narrowly defined shared ownership, not to hide unexplained drift.
+- Verify the result with a fresh plan and state inspection.
