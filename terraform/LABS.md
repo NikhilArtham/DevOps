@@ -941,3 +941,79 @@ An external controller owns one specific tag while Terraform owns the rest of th
 - Have I reviewed the full plan and data/downtime impact?
 - Should I reconcile infrastructure or intentionally accept remote values into state?
 - Did I run a fresh plan and verify the final state?
+
+
+## DAY 13 — Sensitive Values and Secrets Handling
+
+### Lab 1: Compare sensitive and ephemeral variables
+
+Create two variables in a disposable local configuration: one with sensitive = true, and another with both sensitive = true and ephemeral = true (Terraform 1.10+).
+
+Tasks:
+1. Supply test-only values through environment variables, not committed HCL.
+2. Reference the sensitive-only variable in a supported normal resource argument in a disposable test configuration.
+3. Reference the ephemeral variable only in a supported ephemeral context.
+4. Run terraform plan and observe output redaction.
+5. Inspect the test state only in a protected local environment and explain why a sensitive value may still be persisted while an ephemeral value is omitted.
+6. Destroy disposable resources and securely remove temporary files.
+
+### Lab 2: Create an SSM SecureString with a write-only argument
+
+Use Terraform 1.11+ and an AWS provider version supporting aws_ssm_parameter.value_wo.
+
+Tasks:
+1. Create the app_api_token ephemeral sensitive input variable.
+2. Create aws_ssm_parameter.app_api_token with type = SecureString, value_wo = var.app_api_token, and value_wo_version = 1.
+3. Supply a fake test token through TF_VAR_app_api_token.
+4. Run terraform fmt, init, validate, plan, and apply.
+5. Record the exact address aws_ssm_parameter.app_api_token.
+6. Inspect terraform state show aws_ssm_parameter.app_api_token; identify metadata that remains in state and confirm the secret value is not an attribute.
+7. Do not retrieve or print the decrypted secret.
+
+### Lab 3: Reproduce the sensitive-but-persisted trap
+
+In a disposable configuration only, pass a fake secret through a sensitive = true variable to a normal resource argument that persists its value.
+
+Tasks:
+1. Run plan/apply in an isolated sandbox.
+2. Confirm the CLI redacts the value.
+3. Explain why redaction does not mean the value is absent from state.
+4. Do not use a real credential or upload the state/plan anywhere.
+5. Destroy the lab resource and securely delete local state/plan artifacts after the exercise.
+
+### Lab 4: Simulate secret rotation
+
+Scenario: the CI secret store receives a new value, but the write-only argument's version remains unchanged.
+
+Tasks:
+1. Change the test secret in the secure input source without printing it.
+2. Keep value_wo_version unchanged and explain why Terraform cannot compare the write-only value.
+3. Increment the revision from 1 to 2.
+4. Run a plan and confirm the exact SSM parameter address is updated.
+5. Apply and verify parameter version/metadata without decrypting or displaying the value.
+6. Record the rotation procedure so the secret update and revision change are coordinated.
+
+### Lab 5: Recover from an exposed secret
+
+Scenario: a developer accidentally commits a test secret in a tfvars file.
+
+Tasks:
+1. Treat the value as compromised and rotate/revoke it first.
+2. Identify exposure locations: Git history, CI logs, artifacts, state, plan files, caches, and backups.
+3. Restrict access and follow the organization's incident process.
+4. Remove the secret from repository history using the approved procedure; do not assume deleting the current file is sufficient.
+5. Securely handle affected state and plan artifacts; do not manually edit state JSON.
+6. Add appropriate ignore rules and migrate to a secret-store plus ephemeral/write-only workflow where supported.
+7. Verify the old credential no longer works.
+
+### Troubleshooting checklist
+
+- Is the Terraform CLI version new enough for ephemeral or write-only arguments?
+- Does the exact provider resource support the write-only argument?
+- Is the secret injected at runtime rather than hardcoded?
+- Is the value referenced only in an allowed ephemeral context?
+- Is the resource using value_wo rather than the ordinary value argument?
+- Was the write-only version incremented during rotation?
+- Are state, plan, logs, and artifacts protected?
+- Did a secret reach shell history, debug output, Git history, or a CI artifact?
+- If exposed, has the credential been rotated rather than merely deleted?
