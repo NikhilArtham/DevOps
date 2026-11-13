@@ -15,6 +15,8 @@ Terraform is the infrastructure-as-code track for this repository.
 - [x] DAY 9 — Remote State with S3 Backend and State Locking
 - [x] DAY 10 — State Isolation for Dev, QA and Production
 - [x] DAY 11 — Terraform Import, State MV and State RM
+- [x] DAY 12 — Drift Detection and Reconciliation
+- [x] DAY 13 — Sensitive Values and Secrets Handling
 
 ## Topics
 
@@ -29,6 +31,8 @@ Terraform is the infrastructure-as-code track for this repository.
 | 5 | Dynamic blocks, expressions and conditional infrastructure | [DAY 5](DAY%205%20-%20Dynamic%20Blocks%20Expressions%20and%20Conditional%20Infrastructure.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |\n| 6 | Reusable Terraform module design | [DAY 6](DAY%206%20-%20Reusable%20Terraform%20Module%20Design.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |\n| 7 | Module inputs, outputs, validation and documentation | [DAY 7](DAY%207%20-%20Module%20Inputs%20Outputs%20Validation%20and%20Documentation.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |\n| 8 | Provider aliases and multi-account patterns | [DAY 8](DAY%208%20-%20Provider%20Aliases%20and%20Multi%20Account%20Patterns.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |\n| 9 | Remote state with S3 backend and state locking | [DAY 9](DAY%209%20-%20Remote%20State%20with%20S3%20Backend%20and%20State%20Locking.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 | 10 | State isolation for dev, QA and production | [DAY 10](DAY%2010%20-%20State%20Isolation%20for%20Dev%20QA%20and%20Production.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 | 11 | Import, state mv and state rm | [DAY 11](DAY%2011%20-%20Terraform%20Import%20State%20Mv%20and%20State%20Rm.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
+| 12 | Drift detection and reconciliation | [DAY 12](DAY%2012%20-%20Terraform%20Drift%20Detection%20and%20Reconciliation.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
+| 13 | Sensitive values and secrets handling | [DAY 13](DAY%2013%20-%20Sensitive%20Values%20and%20Secrets%20Handling%20in%20Terraform.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 
 ## Centralized files
 
@@ -140,3 +144,13 @@ Terraform is the infrastructure-as-code track for this repository.
 - Review in-place updates versus replacements and safely recover from unexpected production plans.
 - Use `ignore_changes` only for narrowly defined shared ownership, not to hide unexplained drift.
 - Verify the result with a fresh plan and state inspection.
+
+## Day 13 focus
+
+- Distinguish CLI redaction with sensitive from non-persistence with ephemeral.
+- Understand Terraform version requirements: 1.10 for ephemeral values and 1.11 for write-only managed-resource arguments.
+- Supply secrets through approved CI or secret-store integrations rather than HCL or committed tfvars files.
+- Use AWS SSM Parameter Store SecureString with the provider-supported value_wo argument and a rotation version.
+- Inspect the exact address aws_ssm_parameter.app_api_token without retrieving or printing the secret.
+- Reproduce the sensitive-but-persisted trap and explain why state remains sensitive.
+- Recover from secret exposure by rotating credentials, restricting access, and cleaning affected artifacts through approved procedures.
