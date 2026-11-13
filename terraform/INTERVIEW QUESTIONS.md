@@ -990,3 +990,86 @@ No. `terraform state rm` removes Terraform's binding to an object; it does not r
 Detect drift with a normal plan, identify the exact Terraform address and physical object, verify account/backend/workspace, inspect the changed attributes and audit history, and determine which system owns the change. Review the proposed action and its impact. Reconcile HCL or the remote resource according to that ownership decision, apply through the approved workflow, and verify with a fresh plan and state inspection.
 
 </details>
+
+
+## DAY 13 — Sensitive Values and Secrets Handling
+
+### 121. What does sensitive = true do in Terraform?
+
+<details><summary>Answer</summary>
+
+It marks a value as sensitive so Terraform redacts it from normal CLI output and supported UI displays. It does not guarantee that the value is omitted from state or saved plan files. Treat persisted state and plans as sensitive artifacts.
+
+</details>
+
+### 122. What is the difference between sensitive and ephemeral values?
+
+<details><summary>Answer</summary>
+
+Sensitive controls display: Terraform hides the value in normal output. Ephemeral controls persistence: Terraform omits the value from state and plan files. They can be combined so a runtime-only secret is both redacted and not persisted. Ephemeral values are restricted to supported contexts.
+
+</details>
+
+### 123. Which Terraform versions introduced ephemeral values and write-only resource arguments?
+
+<details><summary>Answer</summary>
+
+Terraform 1.10 introduced ephemeral input variables, child-module ephemeral outputs, and ephemeral resources. Terraform 1.11 introduced support for write-only managed-resource arguments. Check the provider's resource documentation because write-only support is implemented per resource.
+
+</details>
+
+### 124. Why can a sensitive variable still appear in Terraform state?
+
+<details><summary>Answer</summary>
+
+The sensitive flag is primarily a redaction feature. If the value is passed to a normal resource argument or returned by a normal data source, the provider may persist it in state. Use a supported ephemeral input and write-only argument when the value must not be persisted; otherwise secure state and plans as secrets.
+
+</details>
+
+### 125. What is a write-only argument?
+
+<details><summary>Answer</summary>
+
+A provider-defined managed-resource argument that Terraform can send during an operation but does not store in plan or state. It is useful for passwords and tokens. Because Terraform cannot read or compare the value later, providers commonly pair it with a normal version argument that signals when the secret should be updated.
+
+</details>
+
+### 126. Why does an SSM SecureString not automatically protect Terraform state?
+
+<details><summary>Answer</summary>
+
+SecureString encrypts the parameter at rest in AWS Systems Manager Parameter Store. If Terraform writes the value through the ordinary value argument, the provider can still place the plaintext value in Terraform state. Use the supported value_wo write-only argument with Terraform 1.11+ and a compatible AWS provider to avoid persisting the value.
+
+</details>
+
+### 127. How do you rotate a secret managed through a write-only argument?
+
+<details><summary>Answer</summary>
+
+Update the secret in the approved secret source, inject the matching new value into the Terraform run, and increment the associated version argument such as value_wo_version. Review the plan and apply through the approved pipeline. Terraform cannot compare old and new write-only values, so the version is the change signal.
+
+</details>
+
+### 128. Is it safe to read a secret from Secrets Manager using a normal Terraform data source?
+
+<details><summary>Answer</summary>
+
+Not automatically. A normal data source can return the decrypted value, which may then be persisted in state even if Terraform redacts it in CLI output. Prefer an ephemeral provider resource where supported, or let the application workload retrieve the secret directly using its IAM role. Verify the exact provider and Terraform version.
+
+</details>
+
+### 129. What should you do if a secret is accidentally committed to Git?
+
+<details><summary>Answer</summary>
+
+Treat it as compromised and rotate or revoke it immediately. Then identify all exposure locations including Git history, clones, CI logs, artifacts, state, plans, caches, and backups. Restrict access, remove it from history using the approved procedure, secure affected artifacts, and review audit logs. Deleting the current file is not enough.
+
+</details>
+
+### 130. Explain your production Terraform secrets-handling strategy.
+
+<details><summary>Answer</summary>
+
+Keep secrets out of HCL and source control. Prefer workload identity or short-lived credentials for provider authentication. Inject runtime secrets from an approved secret store. Use sensitive for output redaction, ephemeral values and supported write-only arguments to prevent persistence, and let workloads retrieve application secrets directly when feasible. Encrypt and restrict state and plan access, protect CI logs and artifacts, implement rotation, and verify provider-specific behavior before production use.
+
+</details>
