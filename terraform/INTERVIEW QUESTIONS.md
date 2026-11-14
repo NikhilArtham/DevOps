@@ -1073,3 +1073,169 @@ Treat it as compromised and rotate or revoke it immediately. Then identify all e
 Keep secrets out of HCL and source control. Prefer workload identity or short-lived credentials for provider authentication. Inject runtime secrets from an approved secret store. Use sensitive for output redaction, ephemeral values and supported write-only arguments to prevent persistence, and let workloads retrieve application secrets directly when feasible. Encrypt and restrict state and plan access, protect CI logs and artifacts, implement rotation, and verify provider-specific behavior before production use.
 
 </details>
+
+
+## DAY 14 — Terraform fmt, validate, plan and CI Quality Gates
+
+### 131. What is the difference between terraform fmt, validate and plan?
+
+<details><summary>Answer</summary>
+
+fmt standardizes HCL formatting. validate checks configuration syntax, references, types and internal consistency after initialization. plan evaluates the proposed infrastructure actions using configuration, state and provider reads. Passing one does not imply the others will pass or that a change is safe to apply.
+
+</details>
+
+### 132. Why should CI use terraform fmt -check instead of terraform fmt?
+
+<details><summary>Answer</summary>
+
+fmt -check verifies formatting and exits unsuccessfully when files need changes, without modifying the pull-request workspace. A developer can run terraform fmt locally, inspect the diff and commit the result. This makes formatting failures visible and reproducible.
+
+</details>
+
+### 133. What does terraform init -backend=false do in a validation pipeline?
+
+<details><summary>Answer</summary>
+
+It initializes the working directory and installs required providers/modules without initializing the configured backend. It is useful for syntax/validation jobs that should not access remote state. It does not prove backend credentials, state access or remote locking work.
+
+</details>
+
+### 134. Does terraform validate prove that infrastructure can be deployed?
+
+<details><summary>Answer</summary>
+
+No. validate checks configuration consistency, not whether AWS credentials are valid, quotas are available, APIs are reachable, permissions allow the operation, or the resulting changes are operationally safe. A plan and environment-specific checks are still required.
+
+</details>
+
+### 135. What should a basic Terraform pull-request quality gate contain?
+
+<details><summary>Answer</summary>
+
+A common baseline is a pinned Terraform CLI version, checkout, terraform fmt -check -recursive, terraform init -backend=false and terraform validate. A separate trusted plan job can inspect real infrastructure changes when it has safe backend and cloud access. Apply should be protected by approvals and environment controls.
+
+</details>
+
+### 136. Why should an untrusted fork pull request not receive cloud credentials?
+
+<details><summary>Answer</summary>
+
+Pull-request code can execute commands in CI. Exposing cloud credentials or privileged secrets to untrusted code can allow an attacker to access infrastructure or state. Use least privilege, short-lived OIDC credentials, trusted-event restrictions and protected environments; do not issue privileged credentials to untrusted fork workflows.
+
+</details>
+
+### 137. Why are Terraform plan files sensitive?
+
+<details><summary>Answer</summary>
+
+Saved plans can contain configuration and planned values, including sensitive data. Restrict artifact access and retention, avoid public uploads and never commit plan files to source control. Treat them with controls similar to Terraform state.
+
+</details>
+
+### 138. What does a replacement marker in a plan mean even if validate passes?
+
+<details><summary>Answer</summary>
+
+Validation only checks configuration consistency. A replacement marker means the provider requires the object to be destroyed and recreated for the proposed change. Stop and inspect the exact address and replacement-causing attribute, operational impact and environment before approval.
+
+</details>
+
+### 139. Why should production apply be separate from pull-request validation?
+
+<details><summary>Answer</summary>
+
+Validation and plan are review gates, not deployment authorization. Production apply needs trusted credentials, protected state access, an approved plan, change approval and auditability. Separating it prevents an ordinary pull request from deploying infrastructure automatically.
+
+</details>
+
+### 140. Explain your Terraform CI quality-gate strategy.
+
+<details><summary>Answer</summary>
+
+I pin the Terraform CLI and provider versions, run fmt check, initialize without backend access for static validation, and run validate on pull requests. A separate trusted plan job uses short-lived identity and least-privilege state/cloud permissions. Reviewers inspect resource addresses, replacement actions and sensitive plan artifacts. Production apply is a separate protected stage with approvals, followed by verification.
+
+</details>
+
+
+## DAY 15 — Terraform Troubleshooting: Dependency Graph and Failed Plans
+
+### 141. What is Terraform's dependency graph?
+
+<details><summary>Answer</summary>
+
+It is a directed graph Terraform builds to determine operation ordering and safe parallelism. A resource reference normally creates an implicit dependency. Terraform can process independent nodes in parallel while waiting for dependencies to complete.
+
+</details>
+
+### 142. How does Terraform infer an implicit dependency?
+
+<details><summary>Answer</summary>
+
+When one resource expression references an attribute from another resource, Terraform knows the referenced resource must be available first. For example, bucket versioning referencing aws_s3_bucket.app.id creates a dependency on aws_s3_bucket.app without an explicit depends_on.
+
+</details>
+
+### 143. When should you use depends_on?
+
+<details><summary>Answer</summary>
+
+Use depends_on only when a real dependency exists but Terraform cannot infer it from an expression reference, such as an ordering requirement involving a side effect. Keep it narrowly scoped. Unnecessary dependencies can reduce parallelism and make plans more conservative.
+
+</details>
+
+### 144. How do you inspect Terraform's dependency graph?
+
+<details><summary>Answer</summary>
+
+Run terraform graph to emit DOT graph data. Save it to a file and render with Graphviz, for example terraform graph > graph.dot followed by dot -Tpng graph.dot -o graph.png. The graph includes internal nodes as well as resources, so focus on relevant dependency edges.
+
+</details>
+
+### 145. What causes a Terraform dependency cycle?
+
+<details><summary>Answer</summary>
+
+A cycle occurs when resources depend on each other directly or through a chain of other resources, so Terraform cannot determine a valid operation order. Inspect the cycle diagnostic and graph, identify the circular reference or depends_on edge, then redesign the dependency or split the operation into valid stages.
+
+</details>
+
+### 146. What causes an invalid index error during planning?
+
+<details><summary>Answer</summary>
+
+An expression refers to an index that does not exist in a list or resource instance collection, often after count, conditional creation or input changes. Inspect collection length and instance addresses, then use a valid index or stable for_each keys. Do not guess an index just to silence the error.
+
+</details>
+
+### 147. Are unknown values in a Terraform plan always errors?
+
+<details><summary>Answer</summary>
+
+No. Computed attributes often remain unknown until an upstream resource is created. This is normal when downstream resources reference those attributes. However, values used to determine instance identity, such as for_each keys, generally must be known during planning; restructure the configuration if they are not.
+
+</details>
+
+### 148. What is the difference between a failed plan and a failed apply?
+
+<details><summary>Answer</summary>
+
+A failed plan means Terraform could not produce a valid proposed action set; investigate configuration, dependencies, provider reads, credentials or APIs before applying. A failed apply can occur after some operations succeeded, so inspect both Terraform state and real infrastructure before retrying.
+
+</details>
+
+### 149. What should you do when apply fails after creating some resources?
+
+<details><summary>Answer</summary>
+
+Do not assume rollback. Identify the failed address and provider error, verify account/backend/workspace, inspect state and check the real cloud objects. Fix the root cause, generate a fresh plan and review remaining actions before retrying. Avoid state removal or repeated blind applies.
+
+</details>
+
+### 150. Explain your workflow for troubleshooting a failed Terraform plan.
+
+<details><summary>Answer</summary>
+
+I identify the failing phase and exact diagnostic/address, verify CLI/provider versions, account, region, backend and workspace, then inspect references, dependencies, inputs and provider permissions. If needed, I inspect terraform graph and state. I fix the root cause, run fmt and validate, generate a fresh plan and verify that only intended actions remain before any apply.
+
+</details>
