@@ -17,6 +17,8 @@ Terraform is the infrastructure-as-code track for this repository.
 - [x] DAY 11 — Terraform Import, State MV and State RM
 - [x] DAY 12 — Drift Detection and Reconciliation
 - [x] DAY 13 — Sensitive Values and Secrets Handling
+- [x] DAY 14 — Terraform fmt, validate, plan and CI Quality Gates
+- [x] DAY 15 — Terraform Troubleshooting: Dependency Graph and Failed Plans
 
 ## Topics
 
@@ -33,6 +35,8 @@ Terraform is the infrastructure-as-code track for this repository.
 | 11 | Import, state mv and state rm | [DAY 11](DAY%2011%20-%20Terraform%20Import%20State%20Mv%20and%20State%20Rm.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 | 12 | Drift detection and reconciliation | [DAY 12](DAY%2012%20-%20Terraform%20Drift%20Detection%20and%20Reconciliation.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 | 13 | Sensitive values and secrets handling | [DAY 13](DAY%2013%20-%20Sensitive%20Values%20and%20Secrets%20Handling%20in%20Terraform.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
+| 14 | fmt, validate, plan and CI quality gates | [DAY 14](DAY%2014%20-%20Terraform%20fmt%20validate%20plan%20and%20CI%20Quality%20Gates.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
+| 15 | Troubleshooting: dependency graph and failed plans | [DAY 15](DAY%2015%20-%20Terraform%20Troubleshooting%20Dependency%20Graph%20and%20Failed%20Plans.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 
 ## Centralized files
 
@@ -154,3 +158,24 @@ Terraform is the infrastructure-as-code track for this repository.
 - Inspect the exact address aws_ssm_parameter.app_api_token without retrieving or printing the secret.
 - Reproduce the sensitive-but-persisted trap and explain why state remains sensitive.
 - Recover from secret exposure by rotating credentials, restricting access, and cleaning affected artifacts through approved procedures.
+
+
+## Day 14 focus
+
+- Distinguish formatting, initialization, validation and planning as separate quality gates.
+- Build a small AWS configuration and inspect the exact address aws_s3_bucket.app.
+- Run terraform fmt -check -recursive, terraform init, terraform validate and terraform plan.
+- Create a GitHub Actions pull-request workflow with safe static validation.
+- Understand why plan jobs require trusted cloud identity and backend access.
+- Protect saved plans and separate production apply behind approvals.
+- Recover from formatting, validation and unexpected replacement-plan failures.
+
+## Day 15 focus
+
+- Understand Terraform's directed dependency graph and implicit dependencies from resource references.
+- Use depends_on only when Terraform cannot infer a genuine ordering requirement.
+- Inspect graph output with terraform graph and Graphviz.
+- Diagnose dependency cycles, invalid indexes, unknown values and provider/API failures.
+- Distinguish failed plan from partially failed apply.
+- Inspect exact resource addresses, Terraform state and real infrastructure before retrying.
+- Recover from failures with a fresh reviewed plan rather than blind apply or state removal.
