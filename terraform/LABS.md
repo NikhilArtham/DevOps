@@ -1017,3 +1017,149 @@ Tasks:
 - Are state, plan, logs, and artifacts protected?
 - Did a secret reach shell history, debug output, Git history, or a CI artifact?
 - If exposed, has the credential been rotated rather than merely deleted?
+
+
+## DAY 14 — Terraform fmt, validate, plan and CI Quality Gates
+
+### Lab 1: Build the small quality-gates configuration
+
+Create the S3 bucket configuration from DAY 14.
+
+Tasks:
+1. Create versions, provider, variable, resource and output files.
+2. Use a unique disposable bucket name and sandbox AWS account.
+3. Run terraform fmt -recursive, terraform init, terraform validate and terraform plan.
+4. Record the exact address aws_s3_bucket.app.
+5. Inspect the plan and identify the physical bucket name.
+
+### Lab 2: Reproduce a formatting failure
+
+Scenario: deliberately misalign attributes in a Terraform file.
+
+Tasks:
+1. Run terraform fmt -check -recursive and capture the failure.
+2. Run terraform fmt -recursive locally.
+3. Inspect the diff.
+4. Re-run fmt check and confirm it passes.
+5. Explain why CI should use check mode rather than silently changing files.
+
+### Lab 3: Reproduce a validation failure
+
+Scenario: reference an undeclared variable or pass a value with the wrong type.
+
+Tasks:
+1. Keep the formatting valid.
+2. Run terraform init and terraform validate.
+3. Capture the file/line diagnostic.
+4. Correct the declaration or input type.
+5. Re-run validate and plan.
+6. Confirm aws_s3_bucket.app has only the intended action.
+
+### Lab 4: Create a pull-request quality-gates workflow
+
+Tasks:
+1. Add a GitHub Actions workflow with checkout and Terraform setup.
+2. Run terraform fmt -check -recursive.
+3. Run terraform init -backend=false.
+4. Run terraform validate -no-color.
+5. Confirm the job does not run terraform apply.
+6. Document how a separate trusted plan job would obtain short-lived credentials and protected backend access.
+
+### Lab 5: Plan-review failure scenario
+
+Scenario: fmt and validate pass, but plan proposes an unexpected replacement.
+
+Tasks:
+1. Stop before apply.
+2. Identify the exact resource address and attribute forcing replacement.
+3. Verify account, region, backend, workspace and provider alias.
+4. Correct the configuration or escalate the intended replacement for review.
+5. Re-run all quality gates.
+6. Save and inspect a final plan; do not commit the plan file.
+
+### Troubleshooting checklist
+
+- Is the Terraform CLI version pinned consistently?
+- Is the workflow using the correct working directory?
+- Does fmt check pass without modifying files?
+- Did init install the expected providers/modules?
+- Does validate identify a syntax, type or reference problem?
+- Does plan use the intended backend and AWS identity?
+- Which exact resource address changes?
+- Is the plan proposing replacement or destruction?
+- Are credentials and plan artifacts protected?
+- Is apply separated behind approval?
+
+
+## DAY 15 — Terraform Troubleshooting: Dependency Graph and Failed Plans
+
+### Lab 1: Build and inspect implicit dependencies
+
+Create an S3 bucket, versioning configuration and public-access-block configuration.
+
+Tasks:
+1. Reference aws_s3_bucket.app.id from both configuration resources.
+2. Run terraform init, validate and plan.
+3. Record the addresses aws_s3_bucket.app, aws_s3_bucket_versioning.app and aws_s3_bucket_public_access_block.app.
+4. Run terraform graph and save the DOT output.
+5. Identify the bucket dependency and explain which two dependent resources can run independently after it exists.
+
+### Lab 2: Compare implicit and explicit dependencies
+
+Tasks:
+1. Start with a resource reference that creates an implicit dependency.
+2. Add an explicit depends_on only where a real ordering dependency is not represented by an attribute reference.
+3. Inspect the graph and plan before and after.
+4. Remove unnecessary depends_on declarations.
+5. Explain how broad dependencies can reduce parallelism or make values unknown for longer.
+
+### Lab 3: Reproduce and repair a dependency cycle
+
+Scenario: create two conceptual resources that reference each other or add mutually dependent depends_on declarations.
+
+Tasks:
+1. Run terraform validate and terraform plan.
+2. Capture the cycle diagnostic and all addresses named.
+3. Run terraform graph -draw-cycles where useful.
+4. Identify the circular edge.
+5. Redesign the interface or remove the incorrect dependency.
+6. Re-run fmt, validate and plan; confirm the cycle is gone.
+
+### Lab 4: Reproduce an invalid index failure
+
+Scenario: reference aws_subnet.private[2] when only two subnet instances are configured.
+
+Tasks:
+1. Run plan and capture the invalid index diagnostic.
+2. Inspect count/for_each inputs and collection length.
+3. Correct the index or redesign around stable map keys.
+4. Re-run plan.
+5. Record the exact resource address and verify no unintended replacement.
+
+### Lab 5: Recover from a partially failed apply
+
+Use only disposable infrastructure.
+
+Scenario: one resource operation succeeds, then a later resource operation fails because of a deliberately invalid permission or test constraint.
+
+Tasks:
+1. Record the resource addresses before applying.
+2. Run apply and capture the failed resource address and diagnostic.
+3. Do not assume earlier operations rolled back.
+4. Inspect terraform state list and terraform state show for the successful resource.
+5. Verify real infrastructure through AWS APIs/console.
+6. Fix the underlying issue.
+7. Run a fresh plan and inspect the remaining actions before retrying apply.
+
+### Troubleshooting checklist
+
+- Is the failure during init, validate, plan or apply?
+- What exact address appears in the diagnostic?
+- Is the dependency implicit or explicitly declared?
+- Does the graph contain a cycle?
+- Are count indexes and for_each keys valid?
+- Are unknown values expected at plan time?
+- Can the provider read the resource, and is the active identity correct?
+- If apply failed, which operations already succeeded?
+- Does state match real infrastructure?
+- Does a fresh plan show only intended actions?
