@@ -1,0 +1,297 @@
+# DAY 15 — Terraform Troubleshooting: Dependency Graph and Failed Plans
+
+## 1. Understand Terraform's dependency graph
+
+Terraform builds a directed graph of operations so it can determine which resources can be created, updated or destroyed in parallel and which must wait for another operation.
+
+A dependency normally comes from an expression reference.
+
+Example:
+
+~~~hcl
+resource "aws_s3_bucket" "app" {
+  bucket = var.bucket_name
+}
+
+resource "aws_s3_bucket_versioning" "app" {
+  bucket = aws_s3_bucket.app.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+~~~
+
+The versioning resource references the bucket ID, so Terraform infers that the bucket must exist first.
+
+Exact addresses:
+
+~~~text
+aws_s3_bucket.app
+aws_s3_bucket_versioning.app
+~~~
+
+The dependency direction is:
+
+~~~text
+aws_s3_bucket.app
+        |
+        v
+aws_s3_bucket_versioning.app
+~~~
+
+Terraform can create independent resources in parallel. Do not add `depends_on` everywhere; explicit dependencies should represent real ordering requirements that Terraform cannot infer from references.
+
+## 2. Small configuration to inspect
+
+Use a disposable AWS sandbox and a globally unique bucket name. The AWS provider is configured in the root module.
+
+~~~hcl
+variable "bucket_name" {
+  description = "Globally unique name for the dependency graph lab"
+  type        = string
+}
+
+resource "aws_s3_bucket" "app" {
+  bucket = var.bucket_name
+
+  tags = {
+    Name      = "dependency-graph-demo"
+    ManagedBy = "Terraform"
+  }
+}
+
+resource "aws_s3_bucket_versioning" "app" {
+  bucket = aws_s3_bucket.app.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "app" {
+  bucket = aws_s3_bucket.app.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+~~~
+
+Expected addresses:
+
+~~~text
+aws_s3_bucket.app
+aws_s3_bucket_versioning.app
+aws_s3_bucket_public_access_block.app
+~~~
+
+Both configuration resources depend on the bucket. They can generally be processed independently after the bucket exists.
+
+## 3. Inspect the graph
+
+Initialize the working directory and generate the graph:
+
+~~~bash
+terraform init
+terraform validate
+terraform plan -var="bucket_name=replace-with-a-unique-test-name"
+terraform graph
+~~~
+
+To save the graph in DOT format:
+
+~~~bash
+terraform graph > dependency-graph.dot
+~~~
+
+If Graphviz is installed, render it:
+
+~~~bash
+dot -Tpng dependency-graph.dot -o dependency-graph.png
+~~~
+
+To include cycles in diagnostic output where supported:
+
+~~~bash
+terraform graph -draw-cycles
+~~~
+
+The graph contains more than just managed resources: it can include provider configuration, variables, outputs, module expansion and Terraform's internal nodes. Read the relevant dependency edges rather than assuming every graph node is an AWS object.
+
+## 4. Implicit dependency vs depends_on
+
+### Prefer implicit dependency
+
+~~~hcl
+resource "aws_s3_bucket_versioning" "app" {
+  bucket = aws_s3_bucket.app.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+~~~
+
+The bucket reference creates the dependency automatically.
+
+### Use explicit depends_on only when required
+
+Sometimes a resource depends on an action that is not represented by an attribute reference. In that case, a narrowly scoped dependency may be appropriate:
+
+~~~hcl
+resource "example_application" "app" {
+  name = "demo"
+
+  depends_on = [
+    example_configuration.bootstrap
+  ]
+}
+~~~
+
+This is illustrative syntax; replace the example provider/resource with a real resource in your environment. Broad module-level `depends_on` can make plans more conservative and create unnecessary unknown values.
+
+## 5. Common failed-plan categories
+
+### A. Dependency cycle
+
+Terraform reports a cycle when resources depend on each other, directly or indirectly.
+
+Example conceptual loop:
+
+~~~text
+resource A requires resource B
+resource B requires resource A
+~~~
+
+Recovery:
+1. Read the cycle diagnostic and list every address in the cycle.
+2. Inspect references and explicit `depends_on` declarations.
+3. Identify the real ordering requirement.
+4. Remove the circular reference or split the design into stages/modules with a valid interface.
+5. Re-run validate and plan; do not randomly delete dependencies.
+
+### B. Invalid index or missing map key
+
+Example:
+
+~~~hcl
+locals {
+  selected_subnet = aws_subnet.private[2].id
+}
+~~~
+
+If only two subnet instances exist, index 2 is invalid.
+
+Recovery:
+1. Check the actual collection length or map keys.
+2. Inspect `count`, `for_each`, conditional resources and input values.
+3. Use a valid key/index or model the optional value safely.
+4. Re-run plan and inspect the exact affected address.
+
+### C. Unknown value or dependency ordering
+
+Some values are unknown until apply because they are generated by another resource. This is normal when a downstream resource references a computed attribute.
+
+Do not hardcode a guessed ID to silence an unknown value. Confirm the dependency reference is correct and let Terraform order the operations. If a plan cannot determine a value needed for expansion such as `for_each` keys, restructure the configuration so instance keys are known before apply.
+
+### D. Provider/API or authorization failure
+
+A plan may fail because the provider cannot refresh a resource or read remote data.
+
+Check:
+- Active identity: `aws sts get-caller-identity`
+- Region and provider alias.
+- IAM permissions and explicit denies.
+- Backend/workspace/state key.
+- Network, DNS, proxy and endpoint access.
+- Provider version and lock file.
+- Cloud API throttling or transient service errors.
+
+A provider read failure is not proof that the resource is missing. Do not remove its state binding or recreate it until remote existence and identity are verified.
+
+## 6. Failure scenario — failed plan after an incorrect dependency
+
+Scenario: a developer adds a broad or incorrect `depends_on` and Terraform reports a dependency cycle.
+
+Safe recovery:
+1. Stop before apply; a failed plan has not authorized any infrastructure change.
+2. Capture the complete diagnostic and identify all named addresses.
+3. Inspect the relevant HCL references and `depends_on` blocks.
+4. Run `terraform graph -draw-cycles` and inspect the DOT output if useful.
+5. Remove only the incorrect edge or redesign the dependency interface.
+6. Run `terraform fmt -recursive`, `terraform validate`, and `terraform plan`.
+7. Confirm the final plan has the expected resource addresses and no unintended replacement.
+
+## 7. Failure scenario — apply partially fails
+
+A failed apply is different from a failed plan. Terraform may have successfully created or changed some resources before a later operation failed.
+
+Recovery:
+1. Stop repeated applies until the failure is understood.
+2. Read the exact failed resource address and provider diagnostic.
+3. Verify the active account, region, backend, workspace and state lock.
+4. Inspect state with `terraform state list` and `terraform state show '<address>'`.
+5. Inspect the real cloud object through the provider/API or cloud console.
+6. Fix the root cause: permissions, quota, naming conflict, dependency, invalid input or transient API issue.
+7. Run a fresh `terraform plan`; Terraform should reconcile from the current state and remote reality.
+8. Apply only after reviewing the new plan.
+
+Do not assume every resource operation is rolled back when apply exits with an error. Terraform records successful operations as it proceeds, but a provider/API failure can still require checking remote reality and state.
+
+## 8. Useful troubleshooting commands
+
+| Command | Purpose |
+|---|---|
+| terraform validate | Checks configuration consistency |
+| terraform plan | Evaluates intended actions and refreshes managed resources |
+| terraform graph | Emits the dependency graph in DOT format |
+| terraform graph -draw-cycles | Highlights dependency cycles in graph output |
+| terraform state list | Lists tracked resource addresses |
+| terraform state show '<address>' | Inspects one tracked resource |
+| terraform providers | Shows provider requirements and selections |
+| terraform show | Displays the current state snapshot |
+| aws sts get-caller-identity | Confirms active AWS account/principal |
+| terraform version | Confirms CLI version |
+
+For saved plan inspection:
+
+~~~bash
+terraform plan -out=tfplan
+terraform show tfplan
+~~~
+
+Treat state and plan files as sensitive. Do not upload them to public artifacts or paste their contents into tickets.
+
+## 9. Common mistakes
+
+- Adding `depends_on` when a normal resource reference already expresses the dependency.
+- Treating every unknown value during planning as an error.
+- Ignoring invalid index errors caused by `count` or `for_each` changes.
+- Assuming a failed apply rolled back earlier successful operations.
+- Removing state when a provider read or authorization error occurs.
+- Re-running apply repeatedly without inspecting the failed resource and remote state.
+- Debugging the wrong AWS account, region, backend key or workspace.
+- Treating a graph as a simple list of creation order; independent nodes can run in parallel.
+- Making a broad module-level dependency that unnecessarily reduces parallelism.
+
+## 10. Troubleshooting checklist
+
+- What exact diagnostic and resource address failed?
+- Is the failure during init, validate, plan or apply?
+- Is there a dependency cycle?
+- Which references create implicit dependencies?
+- Is `depends_on` genuinely required?
+- Are all `count` indexes and `for_each` keys valid?
+- Are unknown values expected at plan time?
+- Is the provider able to read the remote object?
+- Are identity, region, provider alias, backend and workspace correct?
+- If apply partially failed, which operations already succeeded?
+- Does a fresh plan show only the intended remaining actions?
+
+## 11. Interview-ready mental model
+
+**Graph = ordering; references = implicit dependencies; depends_on = explicit ordering when references are insufficient; failed plan = investigate before apply; failed apply = inspect both state and real infrastructure before retrying.**
+
+Terraform builds a dependency graph to order operations and maximize safe parallelism. Troubleshoot the exact diagnostic and address, repair the dependency or provider/input problem, then generate a fresh plan before applying.
