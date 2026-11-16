@@ -179,3 +179,14 @@ Terraform is the infrastructure-as-code track for this repository.
 - Distinguish failed plan from partially failed apply.
 - Inspect exact resource addresses, Terraform state and real infrastructure before retrying.
 - Recover from failures with a fresh reviewed plan rather than blind apply or state removal.
+
+
+## Day 16 focus
+
+- Distinguish terraform validate, native terraform test, policy-as-code checks and real integration tests.
+- Create .tftest.hcl plan-mode tests with assertions and expected failures.
+- Understand provider mocking and why mock success does not prove live AWS behavior.
+- Export a protected plan JSON document for OPA/Conftest or Sentinel evaluation.
+- Enforce security requirements such as S3 public-access blocking and mandatory tags.
+- Test policy rules with both passing and failing fixtures, including missing resources and destructive actions.
+- Recover from policy rejections and partial integration failures by inspecting exact addresses, state and real infrastructure.
