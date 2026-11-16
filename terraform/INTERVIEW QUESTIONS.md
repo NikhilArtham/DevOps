@@ -1239,3 +1239,86 @@ Do not assume rollback. Identify the failed address and provider error, verify a
 I identify the failing phase and exact diagnostic/address, verify CLI/provider versions, account, region, backend and workspace, then inspect references, dependencies, inputs and provider permissions. If needed, I inspect terraform graph and state. I fix the root cause, run fmt and validate, generate a fresh plan and verify that only intended actions remain before any apply.
 
 </details>
+
+
+## DAY 16 — Terraform Testing Concepts and Policy Checks
+
+### 151. What is the difference between terraform validate and terraform test?
+
+<details><summary>Answer</summary>
+
+validate checks whether the initialized configuration is structurally valid, including syntax, references and types. terraform test executes test cases written in .tftest.hcl files and checks assertions or expected failures. Tests verify intended module behavior, not just configuration structure.
+
+</details>
+
+### 152. What is a .tftest.hcl file?
+
+<details><summary>Answer</summary>
+
+It is a Terraform native test file containing run blocks, variables, command modes, assertions and expected failures. Terraform discovers these files as part of terraform test. The native testing framework became available in Terraform 1.6.
+
+</details>
+
+### 153. What is the difference between plan-mode and apply-mode Terraform tests?
+
+<details><summary>Answer</summary>
+
+A plan-mode test evaluates proposed values and assertions without creating managed infrastructure. An apply-mode test performs real resource operations and can incur cost or leave resources behind if cleanup fails. Use plan mode for safe module logic checks and isolated disposable environments for apply-mode integration tests.
+
+</details>
+
+### 154. What are mock providers in Terraform testing?
+
+<details><summary>Answer</summary>
+
+Mock providers simulate provider behavior and can generate computed values for tests, allowing module logic to be tested without real cloud operations. Provider mocking was introduced in Terraform 1.7. Mock success does not prove real IAM permissions, API behavior, quotas or service availability.
+
+</details>
+
+### 155. What is policy as code in Terraform?
+
+<details><summary>Answer</summary>
+
+Policy as code expresses organizational rules as machine-evaluable policies. It can reject plans that violate controls such as public S3 access, missing tags, unapproved regions or prohibited destructive actions. Sentinel and OPA are common policy approaches.
+
+</details>
+
+### 156. What is the difference between Sentinel and OPA?
+
+<details><summary>Answer</summary>
+
+Sentinel is HashiCorp's policy-as-code framework used with supported HashiCorp platforms. OPA is a general-purpose policy engine that uses Rego and can evaluate many kinds of structured input, including Terraform plan JSON. The choice depends on the platform, integration and enforcement requirements.
+
+</details>
+
+### 157. Why convert a Terraform plan to JSON for policy evaluation?
+
+<details><summary>Answer</summary>
+
+terraform show -json exposes structured planned resource changes, addresses, actions and values so a policy engine can evaluate the proposed infrastructure rather than relying only on source text. The JSON may contain sensitive values, so it must be protected like state and saved plan artifacts.
+
+</details>
+
+### 158. Can a Terraform test pass while a real AWS apply fails?
+
+<details><summary>Answer</summary>
+
+Yes. A plan-mode or mocked test may verify module logic without creating real resources. A real apply can still fail due to IAM permissions, quotas, invalid account configuration, network issues or provider/API errors. Use controlled integration tests and verify the actual deployment.
+
+</details>
+
+### 159. What should you do when a policy check rejects a valid Terraform plan?
+
+<details><summary>Answer</summary>
+
+Do not bypass it immediately. Identify the policy rule and resource address, inspect the plan and determine whether the violation is real or a false positive. Correct the configuration or submit a reviewed policy change with tests and approval. Re-run the full pipeline and document any exception with an owner and expiry.
+
+</details>
+
+### 160. Describe a robust Terraform testing and policy pipeline.
+
+<details><summary>Answer</summary>
+
+I run formatting, initialization, validation and native module tests first. A trusted plan job then generates a plan using least-privilege short-lived credentials. Policy-as-code and security checks evaluate the proposed changes, with plan artifacts protected. Review and approval gate the apply stage. After deployment, I verify real cloud configuration and inspect state. Mock tests are not treated as substitutes for integration tests.
+
+</details>
