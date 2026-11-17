@@ -79,7 +79,7 @@ variable "vpc_cidr" {
   type        = string
 
   validation {
-    condition     = can(cidrhost(var.vpc_cidr, 0))
+    condition     = can(cidrnetmask(var.vpc_cidr))
     error_message = "vpc_cidr must be a valid IPv4 CIDR block."
   }
 }
@@ -213,9 +213,9 @@ resource "aws_nat_gateway" "this" {
   count = var.enable_nat_gateway ? 1 : 0
 
   allocation_id = aws_eip.nat[0].id
-  subnet_id     = values(aws_subnet.public)[0].id
+  subnet_id     = try(values(aws_subnet.public)[0].id, null)
 
-  depends_on = [aws_internet_gateway.this]
+  depends_on = [aws_internet_gateway.this, aws_route.public_internet]
 
   tags = merge(local.common_tags, {
     Name = "${var.name}-nat"
