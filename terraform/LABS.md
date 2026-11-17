@@ -1232,3 +1232,90 @@ Tasks:
 - Has the policy itself been tested with both pass and fail fixtures?
 - Is a policy exception approved, owned and time-limited?
 - After apply failure, have state and actual cloud resources both been inspected?
+
+
+## DAY 17 — Build a Reusable AWS VPC Terraform Module
+
+### Lab 1: Build and call a local VPC module
+
+Create a root module and a child module under modules/vpc.
+
+Tasks:
+1. Add typed inputs for VPC CIDR, public subnet map, private subnet map, tags, and NAT enablement.
+2. Create the VPC, Internet Gateway, public/private subnets, route tables, routes, and associations.
+3. Use for_each with stable subnet keys.
+4. Expose VPC ID, subnet IDs, and route-table IDs as outputs.
+5. Call the child module from the root module with two public and two private subnets.
+6. Run fmt, init, validate, and plan.
+7. Record the module-qualified addresses and compare them with the expected resource design.
+
+Expected address patterns:
+~~~text
+module.network.aws_vpc.this
+module.network.aws_subnet.public["public_a"]
+module.network.aws_subnet.private["private_a"]
+module.network.aws_route_table.public
+module.network.aws_route_table.private
+~~~
+
+### Lab 2: Inspect plan, state, and module outputs
+
+In a disposable AWS account only, apply the reviewed plan.
+
+Tasks:
+1. Run terraform state list.
+2. Inspect the VPC with terraform state show.
+3. Inspect one public and one private subnet using their exact module-qualified addresses.
+4. Run terraform output and record VPC and subnet IDs.
+5. Explain the difference between a Terraform address and the physical AWS resource ID.
+6. Confirm public subnet associations use the public route table and private subnet associations use the private route table.
+7. Destroy only after confirming the sandbox contains no dependent workloads or shared resources.
+
+### Lab 3: NAT Gateway precondition failure
+
+Scenario: enable_nat_gateway is true while public_subnets is empty.
+
+Tasks:
+1. Run terraform plan and capture the precondition diagnostic.
+2. Identify module.network.aws_nat_gateway.this[0].
+3. Explain why a NAT Gateway must be placed in a public subnet with a route to an Internet Gateway.
+4. Add a valid public subnet or disable NAT when egress is not required.
+5. Run fmt, validate, and plan again.
+6. Review NAT Gateway and public IPv4 costs before applying.
+
+### Lab 4: Subnet CIDR and AZ troubleshooting
+
+Scenario: AWS rejects a subnet because its CIDR overlaps another subnet or is outside the VPC CIDR, or because the requested AZ is invalid for the account/Region.
+
+Tasks:
+1. Identify the exact failed subnet address.
+2. Compare the subnet CIDR with the VPC CIDR and every other subnet range.
+3. Verify the selected Region and available AZs.
+4. Correct the input map rather than changing state manually.
+5. Generate a fresh plan and confirm only the intended subnet change remains.
+
+### Lab 5: Recover from subnet tag drift
+
+Scenario: someone manually changes the Name tag on module.network.aws_subnet.private["private_a"].
+
+Tasks:
+1. Run terraform plan and record the exact address and changed attribute.
+2. Determine whether Terraform or an external controller owns the tag.
+3. If Terraform owns it, restore the intended input/local tag value.
+4. If external ownership is approved, define a narrow ownership boundary and test it.
+5. Do not use terraform state rm for ordinary drift.
+6. Re-run plan, apply only after review, and verify the final AWS tag and Terraform state.
+
+### Troubleshooting checklist
+
+- Is the VPC CIDR valid and large enough for the planned subnets?
+- Do subnet CIDRs overlap each other or connected networks?
+- Are AZ names valid for the selected account and Region?
+- Does every public subnet associate with a route table containing a default route to the Internet Gateway?
+- Does every private subnet associate with the intended private route table?
+- Is NAT enabled intentionally, and does a public subnet exist?
+- Is the NAT Gateway single-AZ by design, or is per-AZ resilience required?
+- Are module-qualified resource addresses and for_each keys stable?
+- Are output values sufficient for downstream modules?
+- Did the plan contain unexpected replacement or destruction?
+- Have state and actual AWS resources both been inspected after a partial apply failure?
