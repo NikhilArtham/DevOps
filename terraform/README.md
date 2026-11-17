@@ -19,10 +19,10 @@ Terraform is the infrastructure-as-code track for this repository.
 - [x] DAY 13 — Sensitive Values and Secrets Handling
 - [x] DAY 14 — Terraform fmt, validate, plan and CI Quality Gates
 - [x] DAY 15 — Terraform Troubleshooting: Dependency Graph and Failed Plans
+- [x] DAY 16 — Terraform Testing Concepts and Policy Checks
+- [x] DAY 17 — Build a Reusable AWS VPC Terraform Module
 
 ## Topics
-
-| 6 | Reusable Terraform module design | [DAY 6](DAY%206%20-%20Reusable%20Terraform%20Module%20Design.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 
 | Day | Topic | Notes | Labs | Interview |
 |---|---|---|---|---|
@@ -37,6 +37,8 @@ Terraform is the infrastructure-as-code track for this repository.
 | 13 | Sensitive values and secrets handling | [DAY 13](DAY%2013%20-%20Sensitive%20Values%20and%20Secrets%20Handling%20in%20Terraform.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 | 14 | fmt, validate, plan and CI quality gates | [DAY 14](DAY%2014%20-%20Terraform%20fmt%20validate%20plan%20and%20CI%20Quality%20Gates.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 | 15 | Troubleshooting: dependency graph and failed plans | [DAY 15](DAY%2015%20-%20Terraform%20Troubleshooting%20Dependency%20Graph%20and%20Failed%20Plans.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
+| 16 | Testing concepts and policy checks | [DAY 16](DAY%2016%20-%20Terraform%20Testing%20Concepts%20and%20Policy%20Checks.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
+| 17 | Build a reusable AWS VPC Terraform module | [DAY 17](DAY%2017%20-%20Build%20a%20Reusable%20AWS%20VPC%20Terraform%20Module.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 
 ## Centralized files
 
@@ -190,3 +192,15 @@ Terraform is the infrastructure-as-code track for this repository.
 - Enforce security requirements such as S3 public-access blocking and mandatory tags.
 - Test policy rules with both passing and failing fixtures, including missing resources and destructive actions.
 - Recover from policy rejections and partial integration failures by inspecting exact addresses, state and real infrastructure.
+
+
+## Day 17 focus
+
+- Design a reusable AWS VPC child module with typed inputs, stable subnet map keys, and useful outputs.
+- Create public and private subnets, an Internet Gateway, route tables, routes, and route-table associations.
+- Understand the difference between a subnet's name and its actual routing behavior.
+- Add optional NAT Gateway creation with an explicit cost and single-AZ availability trade-off.
+- Call the module from a root configuration and inspect module-qualified resource addresses.
+- Inspect plans, state, physical AWS IDs, and outputs before and after a sandbox deployment.
+- Recover safely from invalid NAT inputs, subnet CIDR/AZ errors, and out-of-band subnet tag drift.
+- Identify production enhancements such as per-AZ NAT, VPC endpoints, Flow Logs, CIDR planning, and integration tests.
