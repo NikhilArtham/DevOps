@@ -1322,3 +1322,86 @@ Do not bypass it immediately. Identify the policy rule and resource address, ins
 I run formatting, initialization, validation and native module tests first. A trusted plan job then generates a plan using least-privilege short-lived credentials. Policy-as-code and security checks evaluate the proposed changes, with plan artifacts protected. Review and approval gate the apply stage. After deployment, I verify real cloud configuration and inspect state. Mock tests are not treated as substitutes for integration tests.
 
 </details>
+
+
+## DAY 17 — Build a Reusable AWS VPC Terraform Module
+
+### 161. What is the purpose of a reusable VPC Terraform module?
+
+<details><summary>Answer</summary>
+
+A reusable VPC module packages network resources and exposes a stable interface through typed inputs and outputs. Different root configurations can reuse it with different CIDRs, subnet layouts, tags, and routing choices instead of duplicating resource definitions. It should avoid hardcoding environment-specific values and should document its networking and availability trade-offs.
+
+</details>
+
+### 162. What is the difference between a root module and a child module?
+
+<details><summary>Answer</summary>
+
+The root module is the working directory where Terraform is initialized and where the overall deployment is composed. A child module is a reusable configuration called by the root or another module. The root supplies values and provider configuration; the child defines the resources and outputs its consumers need.
+
+</details>
+
+### 163. Why use for_each for public and private subnet resources?
+
+<details><summary>Answer</summary>
+
+for_each creates instances using stable map keys, producing addresses such as module.network.aws_subnet.private["private_a"]. Adding or removing another key does not shift the identity of existing instances as positional count indexes can. This makes subnet changes easier to review and reduces accidental address churn.
+
+</details>
+
+### 164. What makes an AWS subnet public?
+
+<details><summary>Answer</summary>
+
+A subnet is public when its associated route table has a route to an Internet Gateway. For an EC2 instance to communicate directly over the internet, it also needs a public IPv4 address or another valid public addressing mechanism, plus suitable security-group and network ACL rules. The subnet name alone does not make it public.
+
+</details>
+
+### 165. What is the difference between an Internet Gateway and a NAT Gateway?
+
+<details><summary>Answer</summary>
+
+An Internet Gateway provides internet connectivity for resources with suitable public addressing and routing. A NAT Gateway allows resources in private subnets to initiate outbound IPv4 connections while preventing unsolicited inbound internet connections to those private resources. A NAT Gateway is placed in a public subnet and requires a route to an Internet Gateway for internet egress.
+
+</details>
+
+### 166. Why might one NAT Gateway be unsuitable for production across multiple AZs?
+
+<details><summary>Answer</summary>
+
+A single NAT Gateway creates an AZ dependency and can cause cross-AZ traffic and data-transfer charges when private subnets in other AZs use it. It is also a single point of failure for that egress path. A common production design deploys one NAT Gateway per AZ and routes each AZ's private subnets through its local NAT Gateway, while balancing resilience against cost.
+
+</details>
+
+### 167. How do you prevent a VPC module from creating a NAT Gateway without a public subnet?
+
+<details><summary>Answer</summary>
+
+Validate the module inputs and add a resource precondition requiring at least one public subnet whenever NAT is enabled. The plan should fail with a clear message before creating the NAT Gateway. The caller must add a valid public subnet or disable NAT if private-subnet internet egress is not required.
+
+</details>
+
+### 168. How do you inspect resources created by a child module in Terraform state?
+
+<details><summary>Answer</summary>
+
+Use terraform state list to see module-qualified addresses, then terraform state show with the exact address. For example, module.network.aws_subnet.public["public_a"]. The Terraform address identifies the state binding, while the subnet ID is the physical AWS identifier. Use the module outputs for normal downstream consumption rather than coupling callers to internal resource addresses.
+
+</details>
+
+### 169. What happens if you rename a module block that already manages AWS infrastructure?
+
+<details><summary>Answer</summary>
+
+The module-qualified state addresses change, so Terraform may interpret the old resources as no longer managed at the old address and propose creating resources at the new address. Use a reviewed moved block or terraform state mv migration, then inspect a fresh plan to confirm Terraform recognizes the existing infrastructure instead of replacing it.
+
+</details>
+
+### 170. How would you troubleshoot a Terraform-managed subnet tag changed manually in AWS?
+
+<details><summary>Answer</summary>
+
+Run terraform plan and identify the exact module-qualified subnet address and changed tag. Confirm which system owns that tag. If Terraform owns it, restore the desired value in configuration and review the plan. If an external controller owns it, define a narrow ownership boundary. Do not remove the state binding to fix normal drift; verify the final plan, state, and live AWS tag.
+
+</details>
