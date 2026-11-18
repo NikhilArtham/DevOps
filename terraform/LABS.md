@@ -1319,3 +1319,92 @@ Tasks:
 - Are output values sufficient for downstream modules?
 - Did the plan contain unexpected replacement or destruction?
 - Have state and actual AWS resources both been inspected after a partial apply failure?
+
+
+## DAY 18 — Build EC2/IAM Modules with Clean Interfaces
+
+### Lab 1: Build the IAM module
+
+Create modules/iam-ec2 with an EC2 trust policy, IAM role, SSM managed policy attachment, and instance profile.
+
+Tasks:
+1. Keep the IAM role and instance profile inside the IAM module.
+2. Allow the EC2 service principal to assume the role.
+3. Attach AmazonSSMManagedInstanceCore; do not attach AdministratorAccess.
+4. Export role name/ARN and instance-profile name/ARN.
+5. Run fmt, init, validate, and plan.
+6. Record the exact module-qualified IAM resource addresses.
+
+Expected addresses:
+~~~text
+module.instance_role.aws_iam_role.this
+module.instance_role.aws_iam_role_policy_attachment.ssm_core
+module.instance_role.aws_iam_instance_profile.this
+~~~
+
+### Lab 2: Build the EC2 module and compose both modules
+
+Create modules/ec2 with inputs for AMI, instance type, subnet, security-group IDs, instance-profile name, root-volume size, and tags.
+
+Tasks:
+1. Do not create IAM roles or security groups inside the EC2 module.
+2. Require IMDSv2.
+3. Encrypt the root EBS volume and use gp3.
+4. Avoid assigning a public IP by default.
+5. Pass module.instance_role.instance_profile_name into the EC2 module.
+6. Use an explicit module dependency if the instance must wait for all IAM attachments to complete.
+7. Inspect the plan and record module.app_server.aws_instance.this.
+
+### Lab 3: Trace boot, metadata, and SSM access
+
+In a disposable AWS environment:
+1. Confirm the instance is in the intended subnet and security groups.
+2. Confirm the instance profile ARN is attached.
+3. From the instance, request an IMDSv2 token and read instance-id and iam/info metadata only.
+4. Do not retrieve or print credential values from IMDS.
+5. Check amazon-ssm-agent service status and logs.
+6. Confirm the instance appears online with aws ssm describe-instance-information.
+7. Record whether the SSM path uses NAT or VPC interface endpoints.
+
+### Lab 4: Diagnose an instance that is running but offline in SSM
+
+Scenario: EC2 launch succeeds, but the instance does not register as an online Systems Manager managed node.
+
+Tasks:
+1. Check EC2 state and instance status checks.
+2. Inspect the attached instance profile.
+3. Confirm the profile contains the expected role and the role trusts ec2.amazonaws.com.
+4. Confirm AmazonSSMManagedInstanceCore is attached.
+5. Inspect IMDSv2 IAM metadata without exposing credentials.
+6. Check SSM Agent service and log output.
+7. Check DNS, route tables, NAT/VPC endpoints, endpoint security groups and outbound TCP 443.
+8. Identify the failing layer before changing configuration.
+9. Fix the root cause, run a fresh plan, and verify SSM registration.
+
+### Lab 5: Validate module boundaries and recover safely
+
+Scenario: a developer adds IAM role creation to the EC2 module and grants AdministratorAccess to fix a connectivity issue.
+
+Tasks:
+1. Identify the duplicated responsibility and excessive permission.
+2. Move IAM ownership into the dedicated IAM module.
+3. Pass only the instance-profile name into the EC2 module.
+4. Replace broad permissions with the approved least-privilege SSM permission baseline.
+5. Review the plan for IAM replacement or detachment risks.
+6. Confirm the instance continues to use the intended profile.
+7. Re-run plan and validate the SSM access path.
+
+### Troubleshooting checklist
+
+- Does the role trust ec2.amazonaws.com?
+- Is the role included in the instance profile?
+- Is the instance profile attached to the correct EC2 instance?
+- Is the required SSM policy attached to the role?
+- Is IMDSv2 enabled and required?
+- Is the SSM Agent installed, running, and logging useful diagnostics?
+- Can the instance resolve and reach required regional SSM endpoints over HTTPS?
+- Does the subnet have a valid NAT or VPC endpoint path?
+- Do endpoint security groups allow TCP 443 from the instance?
+- Does the plan show unexpected instance replacement or IAM detachment?
+- Have Terraform state and live AWS resources both been checked after a partial apply?
+- Have you avoided exposing metadata credentials, state, and saved plan artifacts?
