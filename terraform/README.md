@@ -21,6 +21,7 @@ Terraform is the infrastructure-as-code track for this repository.
 - [x] DAY 15 — Terraform Troubleshooting: Dependency Graph and Failed Plans
 - [x] DAY 16 — Terraform Testing Concepts and Policy Checks
 - [x] DAY 17 — Build a Reusable AWS VPC Terraform Module
+- [x] DAY 18 — Build EC2 and IAM Modules with Clean Interfaces
 
 ## Topics
 
@@ -39,6 +40,7 @@ Terraform is the infrastructure-as-code track for this repository.
 | 15 | Troubleshooting: dependency graph and failed plans | [DAY 15](DAY%2015%20-%20Terraform%20Troubleshooting%20Dependency%20Graph%20and%20Failed%20Plans.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 | 16 | Testing concepts and policy checks | [DAY 16](DAY%2016%20-%20Terraform%20Testing%20Concepts%20and%20Policy%20Checks.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 | 17 | Build a reusable AWS VPC Terraform module | [DAY 17](DAY%2017%20-%20Build%20a%20Reusable%20AWS%20VPC%20Terraform%20Module.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
+| 18 | Build EC2 and IAM modules with clean interfaces | [DAY 18](DAY%2018%20-%20Build%20EC2%20and%20IAM%20Modules%20with%20Clean%20Interfaces.md) | [LABS](LABS.md) | [INTERVIEW QUESTIONS](INTERVIEW%20QUESTIONS.md) |
 
 ## Centralized files
 
@@ -204,3 +206,15 @@ Terraform is the infrastructure-as-code track for this repository.
 - Inspect plans, state, physical AWS IDs, and outputs before and after a sandbox deployment.
 - Recover safely from invalid NAT inputs, subnet CIDR/AZ errors, and out-of-band subnet tag drift.
 - Identify production enhancements such as per-AZ NAT, VPC endpoints, Flow Logs, CIDR planning, and integration tests.
+
+
+## Day 18 focus
+
+- Separate EC2 compute configuration from IAM role, trust policy, permissions, and instance-profile ownership.
+- Build an IAM module that trusts the EC2 service and attaches the approved Systems Manager permission baseline.
+- Build an EC2 module with clean inputs for AMI, instance type, subnet, security groups, instance profile, and encrypted root volume.
+- Require IMDSv2 and avoid public IP assignment and inbound SSH by default.
+- Compose the modules from the root module using explicit outputs and dependencies.
+- Trace EC2 launch, instance profile, IMDSv2 credentials, SSM Agent, DNS, routes, and regional HTTPS endpoints.
+- Diagnose an instance that launches but remains offline in Systems Manager by identifying the failing IAM, OS-agent, or network layer.
+- Inspect exact module-qualified resource addresses and recover from IAM or connectivity failures without broad permissions or blind state changes.
