@@ -1405,3 +1405,86 @@ The module-qualified state addresses change, so Terraform may interpret the old 
 Run terraform plan and identify the exact module-qualified subnet address and changed tag. Confirm which system owns that tag. If Terraform owns it, restore the desired value in configuration and review the plan. If an external controller owns it, define a narrow ownership boundary. Do not remove the state binding to fix normal drift; verify the final plan, state, and live AWS tag.
 
 </details>
+
+
+## DAY 18 — Build EC2/IAM Modules with Clean Interfaces
+
+### 171. Why separate EC2 and IAM into different Terraform modules?
+
+<details><summary>Answer</summary>
+
+They have different responsibilities and lifecycles. The IAM module owns the role, trust policy, permissions, and instance profile. The EC2 module owns compute settings and consumes the profile name as an input. This separation avoids duplicated roles, broad hidden permissions, and tight coupling between compute and identity.
+
+</details>
+
+### 172. What is the difference between an IAM role and an instance profile?
+
+<details><summary>Answer</summary>
+
+An IAM role defines trusted principals and the permissions available after assumption. An EC2 instance profile is the container through which a role is associated with an EC2 instance. EC2 uses the profile to make temporary role credentials available through instance metadata. A role and an instance profile are separate IAM objects.
+
+</details>
+
+### 173. What should the EC2 trust policy contain for an EC2 instance role?
+
+<details><summary>Answer</summary>
+
+The trust policy should allow the EC2 service principal, ec2.amazonaws.com, to perform sts:AssumeRole. This is separate from the role's permissions policy. The trust policy answers who can assume the role; attached permissions answer what the assumed role can do.
+
+</details>
+
+### 174. Why should an EC2 module accept an instance-profile name instead of creating its own IAM role?
+
+<details><summary>Answer</summary>
+
+The profile is an explicit dependency supplied by the caller. This lets IAM lifecycle and permissions be managed independently, supports reuse across compute configurations, and prevents the EC2 module from silently granting permissions. The root module composes the IAM and EC2 modules by passing the IAM module's output into the EC2 module.
+
+</details>
+
+### 175. How does an EC2 instance obtain temporary AWS credentials?
+
+<details><summary>Answer</summary>
+
+The EC2 instance is associated with an instance profile containing an IAM role. The instance metadata service provides temporary credentials for that role, and applications or agents use them through supported SDK credential providers. Require IMDSv2 and never hardcode or log the credential values.
+
+</details>
+
+### 176. What does IMDSv2 protect against, and how do you require it in Terraform?
+
+<details><summary>Answer</summary>
+
+IMDSv2 requires a session token to access instance metadata, helping mitigate certain server-side request forgery and metadata exposure risks. In aws_instance, configure metadata_options with http_endpoint = "enabled" and http_tokens = "required". Review hop-limit requirements for containerized workloads before changing the default design.
+
+</details>
+
+### 177. Why can an EC2 instance be running but not appear in Systems Manager?
+
+<details><summary>Answer</summary>
+
+EC2 running state only confirms that the instance launched. SSM registration additionally requires a healthy SSM Agent, an attached instance profile with the required permissions, working instance metadata credentials, DNS resolution, and outbound connectivity to the regional SSM services. Diagnose each layer instead of assuming the launch was incomplete.
+
+</details>
+
+### 178. How would you troubleshoot an EC2 instance that is offline in Systems Manager?
+
+<details><summary>Answer</summary>
+
+First confirm EC2 state, status checks, subnet, and attached instance profile. Verify the profile contains the intended role, the trust policy allows EC2, and the required SSM permissions are attached. Then inspect IMDSv2 IAM metadata, the SSM Agent service and logs, DNS, routes, NAT or VPC endpoints, endpoint security groups, and outbound TCP 443. Fix the failing layer and verify the instance appears online.
+
+</details>
+
+### 179. Does Session Manager require inbound SSH access to the EC2 instance?
+
+<details><summary>Answer</summary>
+
+No. The SSM Agent initiates outbound connections to the Systems Manager services over HTTPS. A private instance can use NAT or the required VPC interface endpoints. Security groups should allow the necessary egress, while no public inbound SSH rule is required for Session Manager.
+
+</details>
+
+### 180. What is the difference between an EC2 boot failure and an SSM connectivity failure?
+
+<details><summary>Answer</summary>
+
+A boot failure occurs during instance initialization, storage attachment, operating-system startup, or cloud-init. An SSM connectivity failure can occur after the operating system has booted because the agent, instance profile, permissions, DNS, routes, or service endpoints are unavailable. Use EC2 status checks, console/system logs, cloud-init logs, SSM Agent logs, and IAM/network inspection to isolate the layer.
+
+</details>
