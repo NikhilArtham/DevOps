@@ -108,3 +108,111 @@ First confirm inventory selection with `ansible-inventory --graph` and `--list-h
 
 Yes. If fact caching is configured, Ansible may reuse cached values until they expire or are refreshed. Even freshly gathered facts describe the host at gather time and can become outdated after changes during a long-running workflow. Understand the play's fact-gathering and cache configuration before relying on a value.
 </details>
+
+
+## DAY 2 — Variables and Precedence
+
+### 16. Why are variables used in Ansible?
+<details>
+<summary>Answer</summary>
+
+Variables make automation reusable and configurable. The same playbook can deploy to development, QA and production by changing inventory or variable inputs instead of maintaining separate copies of the playbook.
+</details>
+
+### 17. What is variable precedence in Ansible?
+<details>
+<summary>Answer</summary>
+
+Variable precedence is the rule Ansible uses when the same variable is defined in multiple sources. The source with higher precedence determines the effective value. Extra vars passed with `-e` have the highest variable precedence.
+</details>
+
+### 18. What is the difference between group_vars and host_vars?
+<details>
+<summary>Answer</summary>
+
+`group_vars` defines values shared by hosts in an inventory group. `host_vars` defines values for a specific inventory host. Host-specific values normally override group values when both define the same variable.
+</details>
+
+### 19. Which takes precedence: group vars or host vars?
+<details>
+<summary>Answer</summary>
+
+For the common inventory variable sources, host variables take precedence over group variables. Group hierarchy and merge ordering also matter when multiple groups apply to a host.
+</details>
+
+### 20. Which takes precedence: play vars or task vars?
+<details>
+<summary>Answer</summary>
+
+Task-level variables have higher precedence than play-level variables for the task where they are defined. Their scope is limited to that task; they do not permanently rewrite the play variable.
+</details>
+
+### 21. What is the highest-precedence variable source?
+<details>
+<summary>Answer</summary>
+
+Extra variables supplied at runtime, commonly through `-e` or `--extra-vars`, have the highest variable precedence. For example, `ansible-playbook site.yml -e "app_port=9090"` overrides ordinary inventory and play/task variable definitions.
+</details>
+
+### 22. What is the difference between vars and vars_files?
+<details>
+<summary>Answer</summary>
+
+`vars` defines variables inline in a play, role or supported block/task scope. `vars_files` loads variables from one or more external YAML files. External files can help organize environment-specific or larger sets of configuration values.
+</details>
+
+### 23. Does ansible-inventory --host show the final effective variable value?
+<details>
+<summary>Answer</summary>
+
+No. It displays inventory-derived host variables. It does not evaluate every runtime source such as play vars, task vars, role context, registered values or extra vars. Use a debug task in the actual play to inspect the value in that execution scope.
+</details>
+
+### 24. What happens when the same variable is defined in group_vars and host_vars?
+<details>
+<summary>Answer</summary>
+
+The host-specific value normally overrides the group value for that host. This is useful when most servers share a common setting but one host needs a deliberate exception.
+</details>
+
+### 25. What is the purpose of role defaults?
+<details>
+<summary>Answer</summary>
+
+Role defaults provide low-precedence default values for a role. They are designed to be easily overridden by inventory, play or other higher-precedence inputs. Put sensible configurable defaults in `defaults/main.yml`.
+</details>
+
+### 26. What is set_fact?
+<details>
+<summary>Answer</summary>
+
+`ansible.builtin.set_fact` creates or updates a variable associated with the current host during play execution. It is useful for deriving values from facts or task results. Its precedence is higher than many ordinary variable sources, and fact caching can affect later runs if configured.
+</details>
+
+### 27. How do you troubleshoot an unexpected variable value?
+<details>
+<summary>Answer</summary>
+
+Search for every definition of the variable, inspect group membership and host vars, review play/task/role scope, check included variable files and registered/set_fact values, and inspect command-line extra vars. Use `ansible-inventory --host` for inventory values and a debug task to print the runtime value in the relevant scope.
+</details>
+
+### 28. How do you pass a variable from the command line?
+<details>
+<summary>Answer</summary>
+
+Use `-e` or `--extra-vars`, for example `ansible-playbook -i inventory.ini site.yml -e "app_port=9090"`. For structured values, JSON or a YAML/JSON variable file can be passed. Avoid putting passwords or tokens directly on command lines because they may be exposed through shell history or process inspection.
+</details>
+
+### 29. How can you prevent a playbook from running with a missing required variable?
+<details>
+<summary>Answer</summary>
+
+Validate required inputs early using `ansible.builtin.assert`, role argument specifications, or explicit variable validation. Provide a clear failure message that explains which variable is missing and what valid values are expected.
+</details>
+
+### 30. How do you keep secrets in Ansible variables secure?
+<details>
+<summary>Answer</summary>
+
+Use Ansible Vault or an approved secrets manager rather than committing plaintext credentials. Restrict access to vault passwords and secret files, and use `no_log: true` on tasks whose output may expose sensitive values. `no_log` reduces log exposure; it does not encrypt the variable source or every copy of the secret.
+</details>
