@@ -79,3 +79,43 @@ ansible web -i inventory.ini -m ansible.builtin.command -a "ls /path/that/does/n
 - Replace documentation-only IP addresses with your own lab addresses.
 - Never commit private keys, passwords or unencrypted secrets.
 - Use `--list-hosts` before broad targeting and `--diff` only when file contents are safe to display.
+
+
+## DAY 2 — Variables and precedence
+
+### Lab 6 — Trace variable precedence
+
+**Goal:** Identify which variable definition wins at runtime.
+
+1. Reuse the DAY 2 local inventory with `group_vars/web.yml` and `host_vars/localhost.yml`.
+2. Set `app_port` to 8080 in group vars, 8081 in host vars, and 8082 in play vars.
+3. Add a debug task with a task-level `app_port: 8083`.
+4. Run the playbook and record both debug outputs.
+5. Run again with `-e "app_port=9090"` and explain why the extra var wins.
+6. Inspect `ansible-inventory --host localhost` and explain why it does not display the final play/task/CLI value.
+
+**Expected result:** The ordinary play task sees 8082, the task with its local override sees 8083, and both see 9090 when the extra var is supplied.
+
+### Lab 7 — Verify idempotency with variable-driven configuration
+
+**Goal:** Prove that a variable-driven configuration converges.
+
+1. Use the DAY 2 playbook to create `/tmp/ansible-vars-lab/app.conf`.
+2. Run it twice with no overrides; the second run should report `changed=0`.
+3. Run twice with `-e "app_port=9090"`; the first run updates the file and the second reports `changed=0`.
+4. Run twice without the override and observe it converge back to the play-level port.
+5. Inspect the final file contents after each change.
+
+**Expected result:** Stable inputs produce no further changes; changing the effective variable changes the desired file once.
+
+### Lab 8 — Diagnose an undefined variable
+
+**Goal:** Use verbose output to find a variable typo.
+
+1. Add a temporary debug task that references `app_prt` instead of `app_port`.
+2. Tag it `deliberate_failure`.
+3. Run `ansible-playbook -i inventory.ini variables.yml --tags deliberate_failure -vvv`.
+4. Identify the undefined name and failed task.
+5. Correct the typo, rerun, then remove the deliberate-failure task.
+
+**Expected result:** Ansible reports an undefined variable. Verbose output provides task/host context; correcting the variable name resolves the failure.
