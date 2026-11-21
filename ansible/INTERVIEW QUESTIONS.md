@@ -216,3 +216,111 @@ Validate required inputs early using `ansible.builtin.assert`, role argument spe
 
 Use Ansible Vault or an approved secrets manager rather than committing plaintext credentials. Restrict access to vault passwords and secret files, and use `no_log: true` on tasks whose output may expose sensitive values. `no_log` reduces log exposure; it does not encrypt the variable source or every copy of the secret.
 </details>
+
+
+## DAY 3 — Playbooks, idempotency and handlers
+
+### 31. What is an Ansible playbook?
+<details>
+<summary>Answer</summary>
+
+A playbook is a YAML file containing one or more plays. Each play targets a set of inventory hosts and defines tasks, variables, privilege escalation, handlers and other execution behavior. Playbooks are used for repeatable multi-step automation.
+</details>
+
+### 32. What is the difference between a play and a task?
+<details>
+<summary>Answer</summary>
+
+A play maps a host pattern to a set of tasks and execution settings. A task is one operation within that play, usually invoking an Ansible module on the selected hosts.
+</details>
+
+### 33. What is idempotency in Ansible?
+<details>
+<summary>Answer</summary>
+
+Idempotency means repeated execution with the same inputs converges on the same desired state without making additional changes after convergence. For example, a file module ensuring a directory exists should report changed when it creates the directory and ok on a subsequent unchanged run.
+</details>
+
+### 34. How do you verify that a playbook is idempotent?
+<details>
+<summary>Answer</summary>
+
+Run the playbook twice against the same hosts with unchanged inputs. Inspect the recap and task results. The first run may report changed while creating or correcting resources; the second run should normally report changed=0. Also verify the actual application/service state, not just the recap.
+</details>
+
+### 35. What is an Ansible handler?
+<details>
+<summary>Answer</summary>
+
+A handler is a special task that runs when notified by another task that reports changed. Handlers are commonly used for service reloads or restarts after configuration changes, avoiding unnecessary service actions on every playbook run.
+</details>
+
+### 36. When does a handler execute?
+<details>
+<summary>Answer</summary>
+
+A notified handler normally runs at the end of the play, after the ordinary tasks have completed. It can be triggered earlier with `ansible.builtin.meta: flush_handlers`.
+</details>
+
+### 37. Does a task notify a handler when it reports ok?
+<details>
+<summary>Answer</summary>
+
+No. A task must report changed for its notification to trigger. If the managed resource is already in the desired state, the task reports ok and the handler is not notified.
+</details>
+
+### 38. What happens if multiple tasks notify the same handler?
+<details>
+<summary>Answer</summary>
+
+The handler normally runs once at the end of that play, even if several tasks notify it. This prevents repeated restarts when multiple configuration files change in the same play.
+</details>
+
+### 39. What is the difference between a handler and a normal task?
+<details>
+<summary>Answer</summary>
+
+A normal task runs when Ansible reaches it in the task sequence, subject to conditions and execution controls. A handler is event-driven: it runs only when notified by a changed task, and normally runs later at the end of the play.
+</details>
+
+### 40. What is the difference between service state started, restarted and reloaded?
+<details>
+<summary>Answer</summary>
+
+`started` ensures a service is running and is idempotent. `restarted` performs a stop/start operation. `reloaded` asks the service to reload its configuration without a full restart when supported. Choose based on the service's capabilities and the change being applied.
+</details>
+
+### 41. What is notify in Ansible?
+<details>
+<summary>Answer</summary>
+
+`notify` links a task to a handler by name or listen topic. If the task reports changed, Ansible queues the matching handler for execution. If the task reports ok, it does not notify the handler.
+</details>
+
+### 42. What is meta: flush_handlers?
+<details>
+<summary>Answer</summary>
+
+`ansible.builtin.meta: flush_handlers` runs all handlers notified so far at that point in the play rather than waiting until the normal end-of-play handler phase. Later tasks can notify those handlers again.
+</details>
+
+### 43. What does force_handlers do?
+<details>
+<summary>Answer</summary>
+
+`force_handlers: true` tells Ansible to run notified handlers even if a later task fails on that host, subject to the host still being reachable and other execution constraints. Use it carefully because the handler may restart or reload a service while the deployment is only partially complete.
+</details>
+
+### 44. Why might an Ansible task report changed on every run?
+<details>
+<summary>Answer</summary>
+
+The task may use a non-idempotent shell/command, append duplicate content, include a changing timestamp, render unstable template data, or continually correct permissions/content. Inspect the task diff and use a state-aware module such as copy, template, file, package or service where possible.
+</details>
+
+### 45. How do you troubleshoot a handler that does not run?
+<details>
+<summary>Answer</summary>
+
+Check whether the notifying task actually reported changed, whether the notify name matches the handler name or listen topic, whether the handler is in the same play, and whether execution reached the handler phase. Also inspect task conditions, tags, failures and handler flushing behavior.
+</details>
