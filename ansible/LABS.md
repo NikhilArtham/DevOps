@@ -119,3 +119,49 @@ ansible web -i inventory.ini -m ansible.builtin.command -a "ls /path/that/does/n
 5. Correct the typo, rerun, then remove the deliberate-failure task.
 
 **Expected result:** Ansible reports an undefined variable. Verbose output provides task/host context; correcting the variable name resolves the failure.
+
+
+## DAY 3 — Playbooks, idempotency and handlers
+
+### Lab 9 — Read and trace a playbook
+
+**Goal:** Understand play, task, handler and notification flow.
+
+1. Read the DAY 3 `web.yml` example.
+2. Identify the inventory target, privilege escalation, ordered tasks and handler.
+3. Run `ansible-playbook -i inventory.ini web.yml --syntax-check`.
+4. Explain why the service is started before the reload handler can run.
+
+**Expected result:** You can trace the execution order and explain which task can notify the handler.
+
+### Lab 10 — Prove idempotency and handler behavior
+
+**Goal:** Verify that a handler only runs when a managed resource changes.
+
+1. Use a disposable Linux machine with Nginx and systemd support.
+2. Run the DAY 3 playbook once and record changed tasks and handler execution.
+3. Run it again without changing inputs; expect `changed=0` and no handler execution.
+4. Change the HTML heading in the playbook and run again; expect the copy task to change and notify the handler.
+5. Run once more; expect no change and no handler execution.
+6. Verify the page with `curl -I http://localhost/ansible-demo.html`.
+
+**Expected result:** The handler runs after the first deployment and after the deliberate content update, but not on an unchanged run.
+
+### Lab 11 — Diagnose an undefined variable with verbosity
+
+**Goal:** Identify a task failure from Ansible's diagnostic output.
+
+1. Run `ansible-playbook -i inventory.ini web.yml --tags deliberate_failure -vvv`.
+2. Identify the failed task and undefined variable `app_prt`.
+3. Explain why the failure is not an SSH or inventory problem.
+4. Correct the typo or define the intended value and rerun.
+5. Remove the deliberate failure task from normal operational automation.
+
+**Expected result:** Ansible reaches localhost, executes the debug task and fails because the referenced variable is undefined. The verbose output helps locate the exact task and context.
+
+### Lab safety
+
+- Use a disposable Linux host; the example installs Nginx and writes under `/var/www/html`.
+- Run with privilege escalation only where authorized.
+- Do not run package/service changes on a production host just to complete the exercise.
+- Keep secrets out of playbook output and verbose logs.
