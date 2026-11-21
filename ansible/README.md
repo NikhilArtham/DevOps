@@ -6,6 +6,7 @@ Ansible is an agentless automation tool commonly used for configuration manageme
 
 - [DAY 1 — Inventory, Ad-hoc Commands and Facts](DAY%201%20-%20Ansible%20Inventory%20Ad-hoc%20Commands%20and%20Facts.md)
 - [DAY 2 — Variables and Precedence](DAY%202%20-%20Ansible%20Variables%20and%20Precedence.md)
+- [DAY 3 — Playbooks, Idempotency and Handlers](DAY%203%20-%20Ansible%20Playbooks%20Idempotency%20and%20Handlers.md)
 - [Hands-on Labs](LABS.md)
 - [Interview Questions](INTERVIEW%20QUESTIONS.md)
 
@@ -27,13 +28,22 @@ Ansible is an agentless automation tool commonly used for configuration manageme
 - Override a variable with `-e`
 - Diagnose an undefined variable with `-vvv`
 
+## DAY 3 — Playbooks, Idempotency and Handlers
+
+- Play/task structure and execution order
+- Desired-state modules and idempotency
+- Notify/handler behavior and handler execution timing
+- Nginx example: install, start, deploy a page and reload only after change
+- Run twice and verify the second run has `changed=0`
+- Diagnose a deliberate undefined-variable failure using `-vvv`
+
 ## Suggested practice sequence
 
 1. Inspect inventory with `ansible-inventory --graph`.
 2. Preview targets with `ansible ... --list-hosts`.
 3. Test connectivity with `ansible ... -m ansible.builtin.ping`.
 4. Gather facts with `ansible ... -m ansible.builtin.setup`.
-5. Run the DAY 1 and DAY 2 playbooks twice and compare recap output.
-6. Trace a variable override and trigger the DAY 2 deliberate undefined-variable failure.
+5. Run the DAY 1, DAY 2 and DAY 3 playbooks twice and compare recap output.
+6. Trace a variable override, verify handler notification behavior and diagnose the deliberate failures.
 
-Use a disposable lab. The DAY 2 example uses a local connection and writes only under `/tmp`. Never commit private keys or plaintext secrets.
+Use disposable lab hosts. DAY 2 uses a local connection and writes under `/tmp`; DAY 3 installs Nginx and writes under `/var/www/html`. Never commit private keys or plaintext secrets.
