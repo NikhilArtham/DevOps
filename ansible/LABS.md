@@ -165,3 +165,51 @@ ansible web -i inventory.ini -m ansible.builtin.command -a "ls /path/that/does/n
 - Run with privilege escalation only where authorized.
 - Do not run package/service changes on a production host just to complete the exercise.
 - Keep secrets out of playbook output and verbose logs.
+
+
+## DAY 4 — Templates, loops, conditionals and registers
+
+### Lab 12 — Render a dynamic configuration template
+
+**Goal:** Generate a configuration file from variables and verify template idempotency.
+
+1. Create the DAY 4 inventory, Jinja2 template and playbook.
+2. Run ansible-playbook -i inventory.ini templates-loops-registers.yml --syntax-check.
+3. Run the playbook once and inspect /tmp/ansible-template-lab/app.conf.
+4. Run it again without changing inputs; expect changed=0.
+5. Change app_port from 8080 to 9090 and run again; expect the template task to report changed.
+6. Run once more; expect no further change.
+
+**Expected result:** The rendered file contains current variables and loop-generated upstream entries. Stable inputs converge; changing an input updates the file once.
+
+### Lab 13 — Trace loops, conditionals and registered results
+
+**Goal:** Explain how task output controls later execution.
+
+1. Inspect the loop that creates the logs and cache directories.
+2. Add a third directory to app_directories and run the playbook.
+3. Inspect the registered config_file result and identify stat.exists and stat.size.
+4. Inspect port_check and identify rc and stdout.
+5. Temporarily change the grep expression so it finds no matching line. Observe the non-zero return code and the conditional debug task being skipped.
+6. Restore the correct expression and verify the task runs.
+
+**Expected result:** Each list item is processed, registered values are available to later tasks, and when evaluates for the host.
+
+### Lab 14 — Diagnose an undefined variable in a conditional
+
+**Goal:** Use verbose output to identify a condition evaluation failure.
+
+1. Run ansible-playbook -i inventory.ini templates-loops-registers.yml --tags deliberate_failure -vvv.
+2. Find the deliberate task and identify the undefined variable app_prt.
+3. Explain why this is not an SSH, inventory or template-source failure.
+4. Correct the variable to app_port and rerun the tagged task.
+5. Remove the deliberate-failure task after practice.
+
+**Expected result:** The task fails while evaluating its when expression. Verbose output helps locate the task and undefined name.
+
+### Lab safety
+
+- The DAY 4 example writes only under /tmp/ansible-template-lab and uses a local connection.
+- Do not use real credentials or secrets in template variables or debug output.
+- Keep the deliberate-failure task out of normal operational playbooks.
+- A successful template render does not prove the application accepts the configuration; production deployments should validate the file and perform a health check.
