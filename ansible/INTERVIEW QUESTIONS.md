@@ -324,3 +324,111 @@ The task may use a non-idempotent shell/command, append duplicate content, inclu
 
 Check whether the notifying task actually reported changed, whether the notify name matches the handler name or listen topic, whether the handler is in the same play, and whether execution reached the handler phase. Also inspect task conditions, tags, failures and handler flushing behavior.
 </details>
+
+
+## DAY 4 — Templates, loops, conditionals and registers
+
+### 46. What is an Ansible template?
+<details>
+<summary>Answer</summary>
+
+A template is a text file processed with Jinja2 expressions. The ansible.builtin.template module renders it using variables and facts, then manages the resulting file on the target host. It is commonly used for dynamic application, proxy and service configuration.
+</details>
+
+### 47. What is the difference between copy and template?
+<details>
+<summary>Answer</summary>
+
+The copy module transfers a file without rendering Jinja2 variables. The template module renders a Jinja2 source file on the control node and transfers the generated content. Use copy for static files and template for files whose content depends on variables or facts.
+</details>
+
+### 48. Where is a Jinja2 template rendered?
+<details>
+<summary>Answer</summary>
+
+The template is rendered on the Ansible control node using variables and facts available for the target host. The rendered file is then transferred to the managed host.
+</details>
+
+### 49. What is a loop in Ansible?
+<details>
+<summary>Answer</summary>
+
+A loop repeats a task for each element in a list. The current element is available through the item variable by default. It avoids duplicating nearly identical tasks, such as creating several directories or users.
+</details>
+
+### 50. What is the difference between loop and with_items?
+<details>
+<summary>Answer</summary>
+
+loop is the recommended modern syntax for iterating over a list. with_items is older loop syntax and may have different historical flattening behavior. Prefer loop for new playbooks unless a specific lookup-based with_* construct is needed.
+</details>
+
+### 51. How do you access fields in a loop over dictionaries?
+<details>
+<summary>Answer</summary>
+
+Use expressions such as item.name or item.shell when each list element is a dictionary. A list of account dictionaries can drive one user task with name set from item.name.
+</details>
+
+### 52. What is a conditional in Ansible?
+<details>
+<summary>Answer</summary>
+
+A conditional controls whether a task, block or play should execute. The when keyword evaluates an expression for each target host. It is often used with facts, variables, registered results and boolean flags.
+</details>
+
+### 53. Should a when expression be wrapped in Jinja2 delimiters?
+<details>
+<summary>Answer</summary>
+
+No. Write the expression directly, for example when: ansible_facts['os_family'] == "Debian". Do not wrap the expression in Jinja2 delimiters; Ansible evaluates the conditional expression itself.
+</details>
+
+### 54. How do you combine multiple conditions?
+<details>
+<summary>Answer</summary>
+
+Use a YAML list under when for AND behavior: every condition must be true. For OR behavior, use an expression with or or a suitable list-membership test. Keep complex conditions readable and validate optional variables before referencing them.
+</details>
+
+### 55. What is register in Ansible?
+<details>
+<summary>Answer</summary>
+
+register stores the result returned by a task in a variable. Later tasks can inspect fields such as rc, stdout, stderr, changed, failed or module-specific result data. The registered result is runtime data associated with that host and play execution.
+</details>
+
+### 56. What fields are commonly available in a registered command result?
+<details>
+<summary>Answer</summary>
+
+Common fields include rc for the return code, stdout and stderr for output streams, and status fields such as changed and failed. Exact fields can vary by module. Use a debug task in a safe lab to inspect the structure.
+</details>
+
+### 57. Does register make a command idempotent?
+<details>
+<summary>Answer</summary>
+
+No. Register only captures the task result. It does not change how the task behaves. A read-only command can be marked with changed_when: false; a command that changes the system still needs an idempotent design or a purpose-built module.
+</details>
+
+### 58. What is changed_when used for?
+<details>
+<summary>Answer</summary>
+
+changed_when defines the condition under which a task should report changed. It is useful when a command module cannot infer whether a change occurred. For a genuinely read-only diagnostic command, changed_when: false prevents a misleading changed result.
+</details>
+
+### 59. What happens when a registered task is inside a loop?
+<details>
+<summary>Answer</summary>
+
+The registered result generally contains a results list with an entry for each loop item, rather than only one flat task result. Each item result can include its own item value and module return fields. Inspect the structure before writing conditions against loop results.
+</details>
+
+### 60. How do you troubleshoot a task skipped because of a when condition?
+<details>
+<summary>Answer</summary>
+
+Print the variables, facts or registered result used by the condition. Confirm the variable is defined, check its actual type and value, and verify the expression's comparison or boolean conversion. Use verbosity for task context, but a targeted debug task is often the clearest way to inspect condition inputs.
+</details>
