@@ -213,3 +213,47 @@ ansible web -i inventory.ini -m ansible.builtin.command -a "ls /path/that/does/n
 - Do not use real credentials or secrets in template variables or debug output.
 - Keep the deliberate-failure task out of normal operational playbooks.
 - A successful template render does not prove the application accepts the configuration; production deployments should validate the file and perform a health check.
+
+
+## DAY 5 — Roles and reusable structure
+
+### Lab 15 — Build and invoke a reusable role
+
+**Goal:** Move configuration tasks out of a playbook and into a role.
+
+1. Create the DAY 5 layout with roles/app_config/defaults, tasks, handlers and templates.
+2. Put configurable baseline values in defaults/main.yml.
+3. Put directory and template tasks in tasks/main.yml.
+4. Add the Jinja2 source under templates/ and the notification handler under handlers/main.yml.
+5. Invoke the role from site.yml, overriding app_environment and app_port.
+6. Run ansible-playbook -i inventory.ini site.yml --syntax-check, then run the playbook.
+
+**Expected result:** The role renders /tmp/ansible-role-lab/app.conf using values supplied by the play. The changed template notifies the handler.
+
+### Lab 16 — Prove role idempotency and reuse
+
+1. Run ansible-playbook -i inventory.ini site.yml a second time without changing inputs.
+2. Confirm the second run reports changed=0 and the handler does not run.
+3. Change app_port from 9090 to 9191 in the role invocation and run again.
+4. Confirm the template changes once and the handler runs.
+5. Run again without changes and confirm changed=0.
+6. Explain why changing role inputs is preferable to editing internal tasks for each environment.
+
+**Expected result:** Same role, different input values; stable inputs converge without repeated changes.
+
+### Lab 17 — Diagnose a role-play failure with verbosity
+
+1. Run ansible-playbook -i inventory.ini site.yml --tags deliberate_failure -vvv.
+2. Identify the task whose when expression references missing_app_version.
+3. Explain why this is an undefined-variable failure rather than a missing role or inventory/connection issue.
+4. Define the variable or correct the condition and rerun the tagged task.
+5. Remove the deliberate-failure task after practice.
+
+**Expected result:** The task fails during conditional evaluation. Verbose output shows the host, task and undefined variable.
+
+### Lab safety
+
+- The DAY 5 role uses a local connection and writes only under /tmp/ansible-role-lab.
+- The handler is a debug task, not a real service reload. Use a service handler only after validating a real service configuration.
+- Do not run package/service changes on production systems for this exercise.
+- Keep intentional failures and secrets out of normal automation.
