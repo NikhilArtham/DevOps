@@ -432,3 +432,111 @@ The registered result generally contains a results list with an entry for each l
 
 Print the variables, facts or registered result used by the condition. Confirm the variable is defined, check its actual type and value, and verify the expression's comparison or boolean conversion. Use verbosity for task context, but a targeted debug task is often the clearest way to inspect condition inputs.
 </details>
+
+
+## DAY 5 — Roles and reusable structure
+
+### 61. What is an Ansible role?
+<details>
+<summary>Answer</summary>
+
+A role is a reusable, structured collection of related automation content such as tasks, handlers, templates, static files, variables and metadata. It helps organize playbooks, reduce duplication and share automation across environments or projects.
+</details>
+
+### 62. What is the purpose of the tasks directory in a role?
+<details>
+<summary>Answer</summary>
+
+The tasks directory contains the role's task files. tasks/main.yml is the default entry point that Ansible executes when the role is invoked. It can import or include additional task files.
+</details>
+
+### 63. What is the difference between defaults/main.yml and vars/main.yml?
+<details>
+<summary>Answer</summary>
+
+defaults/main.yml contains low-precedence role defaults intended to be overridden by inventory or play inputs. vars/main.yml contains role variables with substantially higher precedence. Put normal user-configurable settings in defaults; reserve vars for values that should be harder to override.
+</details>
+
+### 64. What is the purpose of handlers/main.yml in a role?
+<details>
+<summary>Answer</summary>
+
+It defines handlers that can be notified by tasks in the role. A handler normally runs only when a notifying task reports changed, and usually executes at the end of the play. A common example is reloading a service after a configuration file changes.
+</details>
+
+### 65. What is the difference between files and templates in a role?
+<details>
+<summary>Answer</summary>
+
+The files directory holds static files copied to managed hosts without Jinja2 rendering. The templates directory holds Jinja2 source files rendered using variables and facts before being transferred.
+</details>
+
+### 66. How do you create an Ansible role?
+<details>
+<summary>Answer</summary>
+
+Use ansible-galaxy role init role_name to generate the standard role skeleton. For a project-local role, run it inside the project's roles directory. You can also create only the directories needed by a small role manually.
+</details>
+
+### 67. How does Ansible find a project-local role?
+<details>
+<summary>Answer</summary>
+
+Ansible searches configured role paths. A conventional project layout places a roles directory alongside the playbook. Inspect configured search paths with ansible-config dump and the DEFAULT_ROLES_PATH setting.
+</details>
+
+### 68. How do you call a role from a playbook?
+<details>
+<summary>Answer</summary>
+
+A role can be listed under a play's roles section, or invoked as a task using ansible.builtin.import_role or ansible.builtin.include_role. Choose based on whether static parsing or dynamic runtime inclusion is required.
+</details>
+
+### 69. What is the difference between import_role and include_role?
+<details>
+<summary>Answer</summary>
+
+import_role is static: Ansible processes the role during playbook parsing. include_role is dynamic: Ansible loads the role during execution. Dynamic inclusion is useful for runtime conditions and loops, while static imports make tasks available to parsing-time features. Tag and condition inheritance can differ, so test the intended behavior.
+</details>
+
+### 70. Can one role be reused for development, QA and production?
+<details>
+<summary>Answer</summary>
+
+Yes. Keep environment-independent logic in the role and expose configurable values through role defaults. Supply different values through inventory group/host variables or play-level role parameters. Avoid copying the role for every environment unless the actual behavior differs.
+</details>
+
+### 71. Why should a role be focused on one responsibility?
+<details>
+<summary>Answer</summary>
+
+A focused role is easier to test, review, reuse and troubleshoot. For example, an Nginx role should manage Nginx rather than also owning unrelated database, monitoring and user-provisioning workflows. Larger deployments can compose several focused roles.
+</details>
+
+### 72. How do you pass variables to a role?
+<details>
+<summary>Answer</summary>
+
+Define role defaults and override them through inventory variables, play variables or variables supplied alongside a role invocation under roles. You can also pass variables when using import_role or include_role. Variable precedence differs by source and invocation style.
+</details>
+
+### 73. What is meta/main.yml used for?
+<details>
+<summary>Answer</summary>
+
+It contains role metadata such as author, description, supported platforms, dependencies and other Galaxy-related information. It helps document and distribute a role and can declare role dependencies where appropriate.
+</details>
+
+### 74. How do you test a role independently?
+<details>
+<summary>Answer</summary>
+
+Create a small test playbook and inventory that invoke only the role, validate its inputs, run it against disposable hosts, and execute it twice to check idempotency. For mature roles, use a role-testing framework such as Molecule where appropriate.
+</details>
+
+### 75. What makes an Ansible role production-ready?
+<details>
+<summary>Answer</summary>
+
+A production-ready role has a focused responsibility, documented inputs and defaults, validated variables, idempotent tasks, safe handlers, supported-platform assumptions, secret handling, failure behavior and repeatable tests. It should be reusable without hardcoded environment-specific values or hidden dependencies.
+</details>
