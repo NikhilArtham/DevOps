@@ -8,6 +8,7 @@ Ansible is an agentless automation tool commonly used for configuration manageme
 - [DAY 2 — Variables and Precedence](DAY%202%20-%20Ansible%20Variables%20and%20Precedence.md)
 - [DAY 3 — Playbooks, Idempotency and Handlers](DAY%203%20-%20Ansible%20Playbooks%20Idempotency%20and%20Handlers.md)
 - [DAY 4 — Templates, Loops, Conditionals and Registers](DAY%204%20-%20Ansible%20Templates%20Loops%20Conditionals%20and%20Registers.md)
+- [DAY 5 — Roles and Reusable Structure](DAY%205%20-%20Ansible%20Roles%20and%20Reusable%20Structure.md)
 - [Hands-on Labs](LABS.md)
 - [Interview Questions](INTERVIEW%20QUESTIONS.md)
 
@@ -48,13 +49,23 @@ Ansible is an agentless automation tool commonly used for configuration manageme
 - Run twice to verify template and file-task idempotency
 - Diagnose an undefined variable in a conditional using -vvv
 
+## DAY 5 — Roles and reusable structure
+
+- Understand the standard role directory structure and role search paths
+- Generate a role skeleton with ansible-galaxy role init
+- Separate defaults, tasks, handlers and templates
+- Invoke a role from a playbook and override its defaults
+- Compare roles:, import_role and include_role
+- Run twice to verify role idempotency
+- Diagnose an undefined variable using -vvv
+
 ## Suggested practice sequence
 
 1. Inspect inventory with `ansible-inventory --graph`.
 2. Preview targets with `ansible ... --list-hosts`.
 3. Test connectivity with `ansible ... -m ansible.builtin.ping`.
 4. Gather facts with `ansible ... -m ansible.builtin.setup`.
-5. Run the DAY 1, DAY 2, DAY 3 and DAY 4 playbooks twice and compare recap output.
+5. Run the DAY 1, DAY 2, DAY 3, DAY 4 and DAY 5 playbooks twice and compare recap output.
 6. Trace a variable override, verify handler notification behavior and diagnose the deliberate failures.
 
 Use disposable lab hosts. DAY 2 uses a local connection and writes under `/tmp`; DAY 3 installs Nginx and writes under `/var/www/html`. Never commit private keys or plaintext secrets.
