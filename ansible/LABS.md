@@ -257,3 +257,53 @@ ansible web -i inventory.ini -m ansible.builtin.command -a "ls /path/that/does/n
 - The handler is a debug task, not a real service reload. Use a service handler only after validating a real service configuration.
 - Do not run package/service changes on production systems for this exercise.
 - Keep intentional failures and secrets out of normal automation.
+
+
+## DAY 6 — Vault and secret handling
+
+### Lab 18 — Encrypt a secret variable file
+
+**Goal:** Keep a variable file unreadable in Git while allowing Ansible to decrypt it at runtime.
+
+1. Follow the DAY 6 local inventory and create `group_vars/all/vault.yml` with the fake value `not-a-real-password`.
+2. Run `ansible-vault encrypt group_vars/all/vault.yml` and enter a temporary lab Vault password.
+3. Inspect only the first line with `head -n 1 group_vars/all/vault.yml`; confirm it has the Ansible Vault header.
+4. Run `ansible-vault view group_vars/all/vault.yml` only in a safe terminal, and do not copy the decrypted output into logs or screenshots.
+5. Run `git status --short` and confirm no plaintext copy or password file is staged.
+
+**Expected result:** The tracked variable file is encrypted. The Vault password is not stored in the repository.
+
+### Lab 19 — Run twice and verify idempotency without leaking the secret
+
+**Goal:** Use an encrypted variable in a managed file while suppressing sensitive task output.
+
+1. Run `ansible-playbook -i inventory.ini site.yml --syntax-check`.
+2. Run `ansible-playbook -i inventory.ini site.yml --ask-vault-pass` and enter the lab password.
+3. Run the same command a second time without changing inputs.
+4. Inspect the recap: the second run should show `changed=0`.
+5. Check permissions using `stat -c '%a %U %n' /tmp/ansible-vault-lab-secret.txt`; expected mode is 600.
+6. Do not cat the destination file. The task uses `no_log: true`, and the lab does not require printing the secret.
+
+**Expected result:** First run creates the file; the second run converges with no changes. The secret-bearing task output is censored.
+
+### Lab 20 — Diagnose a deliberate failure safely
+
+**Goal:** Use verbose output to locate a missing required variable without printing secret values.
+
+1. Add the DAY 6 tagged assert task that checks whether `vault_missing_demo_value` is defined.
+2. Run `ansible-playbook -i inventory.ini site.yml --ask-vault-pass --tags deliberate_failure -vvv`.
+3. Identify the selected host, failed task and undefined variable/assertion.
+4. Explain why this is not a Vault decryption or connection failure.
+5. Correct the variable name or define the required non-secret demo value, rerun, then remove the deliberate task.
+6. Review the output before sharing it; redact hostnames, paths or any sensitive context.
+
+**Expected result:** The tagged assert fails with a clear message. Verbose output provides execution context but is not treated as inherently safe.
+
+### Lab safety
+
+- Use only the fake demo value. Never use a real password, API token, private key or production credential.
+- Use `--ask-vault-pass` for this lab; do not commit a Vault password file.
+- Never commit plaintext vault YAML, shell history, password files or decrypted copies.
+- `no_log: true` suppresses task output but does not encrypt the destination file.
+- Remove the demo file after the exercise: `rm -f /tmp/ansible-vault-lab-secret.txt`.
+- If a real secret is exposed, treat it as compromised and rotate it; deleting the visible copy is not sufficient.
