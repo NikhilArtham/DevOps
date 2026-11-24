@@ -540,3 +540,111 @@ Create a small test playbook and inventory that invoke only the role, validate i
 
 A production-ready role has a focused responsibility, documented inputs and defaults, validated variables, idempotent tasks, safe handlers, supported-platform assumptions, secret handling, failure behavior and repeatable tests. It should be reusable without hardcoded environment-specific values or hidden dependencies.
 </details>
+
+
+## DAY 6 — Vault and secret handling
+
+### 76. What is Ansible Vault?
+<details>
+<summary>Answer</summary>
+
+Ansible Vault encrypts sensitive data such as variable files or individual strings so the plaintext is not stored in the repository. Ansible decrypts the data when it is needed during playbook execution and an authorized Vault password is supplied. Vault protects data at rest; it does not automatically prevent runtime output or target-host exposure.
+</details>
+
+### 77. How do you encrypt and inspect a variable file?
+<details>
+<summary>Answer</summary>
+
+Use `ansible-vault encrypt group_vars/all/vault.yml` to encrypt a file. `ansible-vault view` displays its decrypted content, so use it only in a safe terminal. The encrypted file begins with an Ansible Vault header. Avoid copying decrypted output into logs or tickets.
+</details>
+
+### 78. What is the difference between ansible-vault encrypt and encrypt_string?
+<details>
+<summary>Answer</summary>
+
+`ansible-vault encrypt` encrypts an entire file in place. `ansible-vault encrypt_string` encrypts one value and prints an encrypted YAML-compatible string that can be embedded in a variable file. Both require secure handling of the Vault password and generated output.
+</details>
+
+### 79. How do you run a playbook that uses Vault-encrypted variables?
+<details>
+<summary>Answer</summary>
+
+For an interactive prompt, use `ansible-playbook site.yml --ask-vault-pass`. You can also use a protected password file or a named Vault ID with `--vault-id`. In CI/CD, retrieve the password from an approved protected secret store rather than hardcoding it in source code.
+</details>
+
+### 80. What is a Vault ID?
+<details>
+<summary>Answer</summary>
+
+A Vault ID is a label associated with a Vault password, such as dev, qa or prod. It helps Ansible select the appropriate password when multiple encrypted files use different passwords. A Vault ID is only a label; it does not itself enforce access permissions.
+</details>
+
+### 81. What is no_log in Ansible?
+<details>
+<summary>Answer</summary>
+
+`no_log: true` suppresses sensitive task arguments and results from normal Ansible output. Use it on tasks that handle passwords, tokens or secret-bearing results. It does not encrypt variables, protect the destination file, or guarantee that every external callback or application log is safe.
+</details>
+
+### 82. Does Ansible Vault prevent a secret from appearing in task output?
+<details>
+<summary>Answer</summary>
+
+No. Vault encrypts data at rest and Ansible decrypts it for runtime use. A debug task or another task can still print the decrypted value. Avoid debugging secrets and use `no_log: true` for tasks whose arguments or results are sensitive.
+</details>
+
+### 83. What is the difference between Vault and no_log?
+<details>
+<summary>Answer</summary>
+
+Vault encrypts secret source data at rest, such as a YAML variable file committed to Git. `no_log` suppresses task details in Ansible output. They address different exposure paths and are often used together.
+</details>
+
+### 84. How should Vault passwords be handled in CI/CD?
+<details>
+<summary>Answer</summary>
+
+Store the Vault password in an approved CI secret store or external secrets manager, restrict access to authorized workflows and branches, and retrieve it only at runtime. Do not hardcode it in playbooks, repository files, container images or pipeline YAML. Avoid shell tracing and ensure logs and artifacts do not expose it.
+</details>
+
+### 85. Is a Vault password file safe to commit if the Vault data is encrypted?
+<details>
+<summary>Answer</summary>
+
+No. Anyone with both the encrypted file and the password can decrypt the secrets. A password file must be stored separately, protected with restrictive permissions and excluded from Git and artifacts. For local learning, an interactive prompt is safer and simpler.
+</details>
+
+### 86. How do you rotate a Vault password?
+<details>
+<summary>Answer</summary>
+
+Use `ansible-vault rekey encrypted_file.yml` to change the password protecting an encrypted file. Coordinate the change with authorized users and CI systems, update the protected password store, and verify that the intended workflows can decrypt the file. Credential rotation inside the application is a separate operation.
+</details>
+
+### 87. What happens if a Vault-encrypted variable is undefined at runtime?
+<details>
+<summary>Answer</summary>
+
+Ansible may not have loaded the file or variable at all. Check the `group_vars` or `host_vars` path, inventory group membership, explicit `vars_files`, YAML structure and variable spelling. A missing variable is different from a decryption failure, which indicates Ansible could not decrypt the encrypted data.
+</details>
+
+### 88. Does no_log make verbose output completely safe?
+<details>
+<summary>Answer</summary>
+
+No. It suppresses details for the task where it is configured, but other tasks, callbacks, external tools, shell tracing or application logs may still expose secrets. Review output before sharing it and avoid printing secrets in the first place. Verbosity is a diagnostic aid, not a security control.
+</details>
+
+### 89. How should secret-bearing files be protected on managed hosts?
+<details>
+<summary>Answer</summary>
+
+Use restrictive ownership and permissions, such as owner-only read/write mode 0600 when appropriate. Limit access to the service identity that needs the file, consider backups and temporary copies, and rotate the credential if exposure is suspected. Vault does not encrypt the deployed file automatically.
+</details>
+
+### 90. What should you do if a secret is accidentally committed to Git?
+<details>
+<summary>Answer</summary>
+
+Treat the secret as compromised: revoke or rotate it immediately, investigate access and usage, and remove or rewrite exposed history according to the organization's incident process. Deleting the file in a later commit does not remove the secret from earlier Git history, forks, clones or cached artifacts.
+</details>
