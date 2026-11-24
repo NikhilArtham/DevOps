@@ -9,6 +9,7 @@ Ansible is an agentless automation tool commonly used for configuration manageme
 - [DAY 3 — Playbooks, Idempotency and Handlers](DAY%203%20-%20Ansible%20Playbooks%20Idempotency%20and%20Handlers.md)
 - [DAY 4 — Templates, Loops, Conditionals and Registers](DAY%204%20-%20Ansible%20Templates%20Loops%20Conditionals%20and%20Registers.md)
 - [DAY 5 — Roles and Reusable Structure](DAY%205%20-%20Ansible%20Roles%20and%20Reusable%20Structure.md)
+- [DAY 6 — Vault and Secret Handling](DAY%206%20-%20Ansible%20Vault%20and%20Secret%20Handling.md)
 - [Hands-on Labs](LABS.md)
 - [Interview Questions](INTERVIEW%20QUESTIONS.md)
 
@@ -59,13 +60,22 @@ Ansible is an agentless automation tool commonly used for configuration manageme
 - Run twice to verify role idempotency
 - Diagnose an undefined variable using -vvv
 
+## DAY 6 — Vault and secret handling
+
+- Encrypt a variable file with Ansible Vault and inspect its encrypted header
+- Load the vaulted variable into a minimal local playbook
+- Use `no_log: true` for a task that handles decrypted data
+- Run twice and verify the second run reports `changed=0`
+- Diagnose a deliberate missing-variable assertion with `-vvv`
+- Understand Vault IDs, password handling, CI secret storage and safe output
+
 ## Suggested practice sequence
 
 1. Inspect inventory with `ansible-inventory --graph`.
 2. Preview targets with `ansible ... --list-hosts`.
 3. Test connectivity with `ansible ... -m ansible.builtin.ping`.
 4. Gather facts with `ansible ... -m ansible.builtin.setup`.
-5. Run the DAY 1, DAY 2, DAY 3, DAY 4 and DAY 5 playbooks twice and compare recap output.
-6. Trace a variable override, verify handler notification behavior and diagnose the deliberate failures.
+5. Run the DAY 1, DAY 2, DAY 3, DAY 4, DAY 5 and DAY 6 playbooks twice and compare recap output.
+6. Trace a variable override, verify handler notification behavior and diagnose the deliberate failures. For DAY 6, use only the fake demo secret and never expose decrypted output.
 
 Use disposable lab hosts. DAY 2 uses a local connection and writes under `/tmp`; DAY 3 installs Nginx and writes under `/var/www/html`. Never commit private keys or plaintext secrets.
