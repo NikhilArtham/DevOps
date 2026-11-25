@@ -10,6 +10,7 @@ Ansible is an agentless automation tool commonly used for configuration manageme
 - [DAY 4 — Templates, Loops, Conditionals and Registers](DAY%204%20-%20Ansible%20Templates%20Loops%20Conditionals%20and%20Registers.md)
 - [DAY 5 — Roles and Reusable Structure](DAY%205%20-%20Ansible%20Roles%20and%20Reusable%20Structure.md)
 - [DAY 6 — Vault and Secret Handling](DAY%206%20-%20Ansible%20Vault%20and%20Secret%20Handling.md)
+- [DAY 7 — Troubleshooting and Verbose Execution](DAY%207%20-%20Ansible%20Troubleshooting%20and%20Verbose%20Execution.md)
 - [Hands-on Labs](LABS.md)
 - [Interview Questions](INTERVIEW%20QUESTIONS.md)
 
@@ -69,13 +70,22 @@ Ansible is an agentless automation tool commonly used for configuration manageme
 - Diagnose a deliberate missing-variable assertion with `-vvv`
 - Understand Vault IDs, password handling, CI secret storage and safe output
 
+## DAY 7 — Troubleshooting and verbose execution
+
+- Troubleshoot from inventory and connectivity through privilege escalation, variables, task behavior and application health
+- Use syntax-check, list-hosts, inventory graph and Ansible ping before deeper debugging
+- Understand verbosity levels from -v through -vvvv and review sensitive output carefully
+- Use a minimal localhost playbook with file, stat and assert modules
+- Run twice and verify the second run reports changed=0
+- Diagnose a deliberately failing command with -vvv and interpret its return code
+
 ## Suggested practice sequence
 
 1. Inspect inventory with `ansible-inventory --graph`.
 2. Preview targets with `ansible ... --list-hosts`.
 3. Test connectivity with `ansible ... -m ansible.builtin.ping`.
 4. Gather facts with `ansible ... -m ansible.builtin.setup`.
-5. Run the DAY 1, DAY 2, DAY 3, DAY 4, DAY 5 and DAY 6 playbooks twice and compare recap output.
-6. Trace a variable override, verify handler notification behavior and diagnose the deliberate failures. For DAY 6, use only the fake demo secret and never expose decrypted output.
+5. Run the DAY 1, DAY 2, DAY 3, DAY 4, DAY 5, DAY 6 and DAY 7 playbooks twice and compare recap output.
+6. Trace a variable override, verify handler notification behavior and diagnose the deliberate failures. For DAY 6, use only the fake demo secret and never expose decrypted output. For DAY 7, inspect the deliberate failure with -vvv and redact sensitive diagnostic context.
 
 Use disposable lab hosts. DAY 2 uses a local connection and writes under `/tmp`; DAY 3 installs Nginx and writes under `/var/www/html`. Never commit private keys or plaintext secrets.
