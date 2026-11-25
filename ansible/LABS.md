@@ -307,3 +307,49 @@ ansible web -i inventory.ini -m ansible.builtin.command -a "ls /path/that/does/n
 - `no_log: true` suppresses task output but does not encrypt the destination file.
 - Remove the demo file after the exercise: `rm -f /tmp/ansible-vault-lab-secret.txt`.
 - If a real secret is exposed, treat it as compromised and rotate it; deleting the visible copy is not sufficient.
+
+
+## DAY 7 — Troubleshooting and verbose execution
+
+### Lab 21 — Establish the baseline before debugging
+
+**Goal:** Prove the inventory, target selection and playbook syntax are correct before investigating task failures.
+
+1. Create the DAY 7 local inventory and playbook.
+2. Run `ansible-playbook -i inventory.ini site.yml --syntax-check`.
+3. Run `ansible-playbook -i inventory.ini site.yml --list-hosts`.
+4. Run `ansible-inventory -i inventory.ini --graph`.
+5. Explain why `ansible.builtin.ping` checks Ansible connectivity and is not an ICMP ping.
+
+**Expected result:** Syntax passes, localhost is selected, and the inventory graph shows the local group and host.
+
+### Lab 22 — Verify idempotency and diagnose the deliberate command failure
+
+**Goal:** Run the same desired-state play twice, then inspect a controlled failure.
+
+1. Run `ansible-playbook -i inventory.ini site.yml --skip-tags deliberate_failure`.
+2. Run it again with the same command; confirm the second recap reports `changed=0`.
+3. Inspect `/tmp/ansible-troubleshooting-lab/status.txt` and its permissions.
+4. Run `ansible-playbook -i inventory.ini site.yml --tags deliberate_failure -vvv`.
+5. Identify the failing command, selected host and non-zero return code (`rc=1` is expected for the missing file).
+6. Explain why the error is not a connection or YAML syntax problem.
+
+**Expected result:** Normal runs converge; the tagged command check fails for the expected reason and verbose output provides the task context.
+
+### Lab 23 — Practise targeted troubleshooting
+
+1. Change the inventory group name or play host pattern so no hosts match. Use `--list-hosts` to catch the scope issue before execution, then restore it.
+2. Temporarily change the expected file path in the playbook. Use task output and the registered stat result to identify the mismatch.
+3. Run with `-v`, then `-vvv`; note what additional information helps and what output is unnecessary.
+4. Use `--start-at-task` to resume at a named task only after confirming its prerequisites already exist.
+5. Restore the correct path and run twice; verify the second run has `changed=0`.
+
+**Expected result:** You can distinguish inventory selection, path/precondition and task execution failures, and can return the playbook to a clean idempotent state.
+
+### Lab safety
+
+- DAY 7 uses localhost and writes only under `/tmp/ansible-troubleshooting-lab`.
+- The tagged missing-file command is deliberately expected to fail; skip the tag for normal runs.
+- Do not use `--limit`, `--start-at-task` or `--step` blindly in production; understand which prerequisite tasks are being bypassed.
+- Verbose output may expose paths, usernames, hostnames and command arguments. Review and redact it before sharing.
+- Remove the lab directory after practice: `rm -rf /tmp/ansible-troubleshooting-lab`.
