@@ -648,3 +648,112 @@ Use restrictive ownership and permissions, such as owner-only read/write mode 06
 
 Treat the secret as compromised: revoke or rotate it immediately, investigate access and usage, and remove or rewrite exposed history according to the organization's incident process. Deleting the file in a later commit does not remove the secret from earlier Git history, forks, clones or cached artifacts.
 </details>
+
+
+## DAY 7 — Troubleshooting and verbose execution
+
+### 91. What is your systematic approach to troubleshooting an Ansible playbook?
+<details>
+<summary>Answer</summary>
+
+Start by confirming inventory and host selection, then validate syntax, connectivity and privilege escalation. Identify the first failing task, inspect the module result and return code, check relevant variables and target state, fix the root cause, rerun the narrowest safe test and independently verify the application outcome.
+</details>
+
+### 92. What do -v, -vv, -vvv and -vvvv do?
+<details>
+<summary>Answer</summary>
+
+They progressively increase Ansible verbosity. Use -v for additional task details, -vv for more execution information, -vvv for detailed connection/module troubleshooting and -vvvv for very detailed connection/plugin debugging. Use the lowest level that provides enough evidence.
+</details>
+
+### 93. How do you verify which hosts a playbook will target?
+<details>
+<summary>Answer</summary>
+
+Use `ansible-playbook -i inventory.ini site.yml --list-hosts` to preview selected hosts. Use `ansible-inventory -i inventory.ini --graph` to inspect group structure. This catches many inventory and host-pattern mistakes before tasks run.
+</details>
+
+### 94. What is the difference between Ansible ping and ICMP ping?
+<details>
+<summary>Answer</summary>
+
+The `ansible.builtin.ping` module checks whether Ansible can connect to a managed host and execute a small module, generally over the configured connection such as SSH. The operating-system ping command sends ICMP echo requests. One can work while the other is blocked.
+</details>
+
+### 95. What does UNREACHABLE mean?
+<details>
+<summary>Answer</summary>
+
+Ansible could not establish or use the configured connection to the host. Check the hostname/IP, DNS, route, port, firewall, SSH service, remote username, authentication method and connection variables. It is different from a task that connected successfully and then failed.
+</details>
+
+### 96. How do you troubleshoot a task that fails with a non-zero return code?
+<details>
+<summary>Answer</summary>
+
+Identify the exact task and command, inspect the registered result fields such as rc, stdout and stderr, and compare the command's behavior with its intended success condition. A non-zero rc does not always include stderr. Do not override failed_when until the command's return semantics are understood.
+</details>
+
+### 97. What is the purpose of --syntax-check?
+<details>
+<summary>Answer</summary>
+
+It checks playbook syntax and structure without executing the tasks. It can catch YAML and playbook parsing problems, but it does not prove remote connectivity, runtime variable availability, module success or application health.
+</details>
+
+### 98. How do you debug an undefined variable?
+<details>
+<summary>Answer</summary>
+
+Check spelling, variable scope, inventory group/host membership, vars_files and whether the relevant file is loaded. Use a safe assert or a debug statement for non-sensitive values. Never print passwords or tokens to diagnose variable loading.
+</details>
+
+### 99. What is --start-at-task used for?
+<details>
+<summary>Answer</summary>
+
+It starts playbook execution at a task with the specified name. It is useful for focused debugging, but earlier tasks are skipped. Use it only when required prerequisites and state are already present; otherwise the resumed task may fail for reasons caused by skipped setup.
+</details>
+
+### 100. What is --step used for?
+<details>
+<summary>Answer</summary>
+
+It makes Ansible ask for confirmation before each task, allowing an operator to inspect and control execution interactively. It is useful for controlled debugging but is unsuitable for unattended automation and can be risky if task effects are not understood.
+</details>
+
+### 101. What is the purpose of --limit?
+<details>
+<summary>Answer</summary>
+
+It restricts execution to a subset of hosts matching the supplied pattern. It is useful for canary or targeted troubleshooting. Confirm the resulting host set first and remember that limiting hosts can affect dependencies and orchestration assumptions.
+</details>
+
+### 102. What is Ansible check mode?
+<details>
+<summary>Answer</summary>
+
+Check mode, enabled with `--check`, asks supported modules to predict changes without applying them. Module support varies, and commands or custom modules may not provide reliable predictions. It is a useful preview, not a replacement for testing in a safe environment.
+</details>
+
+### 103. What is the difference between changed_when and failed_when?
+<details>
+<summary>Answer</summary>
+
+`changed_when` controls whether Ansible reports a task as changed. `failed_when` controls whether the task result is treated as a failure. They are useful for commands whose return codes do not match Ansible's default assumptions, but incorrect conditions can hide failures or create false change reports.
+</details>
+
+### 104. Why can a playbook succeed while the application is still unavailable?
+<details>
+<summary>Answer</summary>
+
+Ansible reports task execution outcomes, not necessarily end-user application health. A service may be running but have invalid configuration, failed dependencies, bad routing or an unhealthy backend. Add configuration validation, service checks and application-level health tests after deployment.
+</details>
+
+### 105. Is -vvvv output safe to share?
+<details>
+<summary>Answer</summary>
+
+Not automatically. It can expose hostnames, usernames, file paths, connection details and command arguments. Secret-bearing tasks should use `no_log: true`, but this does not sanitize every callback, external command or application log. Review and redact output before sharing it.
+</details>
+
