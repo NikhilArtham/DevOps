@@ -353,3 +353,55 @@ ansible web -i inventory.ini -m ansible.builtin.command -a "ls /path/that/does/n
 - Do not use `--limit`, `--start-at-task` or `--step` blindly in production; understand which prerequisite tasks are being bypassed.
 - Verbose output may expose paths, usernames, hostnames and command arguments. Review and redact it before sharing.
 - Remove the lab directory after practice: `rm -rf /tmp/ansible-troubleshooting-lab`.
+
+
+## DAY 8 — Automating AWS configuration with Ansible + SSM
+
+### Lab 24 — Prepare the SSM connection path
+
+**Goal:** Confirm the EC2 instance and Ansible controller meet the SSM connection plugin prerequisites.
+
+1. Use a disposable EC2 Linux instance with SSM Agent installed and an instance profile that includes the `AmazonSSMManagedInstanceCore` baseline.
+2. Confirm the instance appears as an online managed node in Systems Manager.
+3. Confirm outbound HTTPS connectivity from the instance to Systems Manager and S3. For private subnets, inspect NAT or the required VPC endpoints and DNS.
+4. On the controller, install the `amazon.aws` collection, AWS SDK dependencies and Session Manager Plugin.
+5. Run `aws sts get-caller-identity` and confirm the controller identity is the intended role/profile.
+6. Create a dedicated S3 staging bucket with restrictive access and review versioning, encryption and lifecycle settings.
+
+**Expected result:** The instance is online in Systems Manager and the controller has the required SSM and staging-bucket access. Do not proceed with real secrets in this lab.
+
+### Lab 25 — Configure the EC2 instance over SSM and prove idempotency
+
+**Goal:** Run normal Ansible modules over SSM without inbound SSH.
+
+1. Create the DAY 8 static inventory with the EC2 instance ID, `ansible_connection=amazon.aws.aws_ssm`, Region and S3 bucket name.
+2. Run `ansible-playbook -i inventory.ini site.yml --list-hosts`.
+3. Run `ansible-playbook -i inventory.ini site.yml --syntax-check`.
+4. Run `ansible-playbook -i inventory.ini site.yml --skip-tags deliberate_failure`.
+5. Run the exact same command again.
+6. Confirm the second recap reports `changed=0`.
+7. Verify the file under `/tmp/ansible-ssm-lab/agent.conf` on the instance through an authorized path.
+
+**Expected result:** Ansible connects through SSM, creates the directory and config file once, and reports no changes on the second run.
+
+### Lab 26 — Separate SSM transport failures from task failures
+
+**Goal:** Use verbose output to diagnose a controlled task failure and identify the layer where it occurs.
+
+1. Run `ansible-playbook -i inventory.ini site.yml --tags deliberate_failure -vvv`.
+2. If the SSM connection succeeds, identify the missing-file command and its non-zero return code (normally `rc=1`).
+3. Explain why this is a task-level failure rather than an SSM transport failure.
+4. For additional diagnosis, compare the result with a deliberately incorrect bucket name or a test identity without required SSM permission only in a disposable environment; restore the correct settings immediately.
+5. Classify the failure as controller/plugin, IAM/SSM session, S3 transfer/network, target runtime or task logic.
+6. Restore the working configuration and rerun the normal playbook twice to verify `changed=0`.
+
+**Expected result:** You can distinguish an SSM connection failure from a command/module failure and can return the environment to a working idempotent state.
+
+### Lab safety
+
+- Use a disposable EC2 instance and a dedicated S3 staging bucket; this exercise may incur AWS charges.
+- Do not open inbound SSH just to make the SSM exercise work.
+- Never place AWS access keys, passwords or production secrets in inventory, playbooks, shell history or task output.
+- The SSM connection plugin stages module files through S3. Understand object cleanup, bucket versioning and secret exposure before using it in production.
+- Restrict S3 and SSM permissions to the required account, Region, instance and bucket prefix.
+- Remove the lab configuration file and clean up test infrastructure and staging objects when finished.
