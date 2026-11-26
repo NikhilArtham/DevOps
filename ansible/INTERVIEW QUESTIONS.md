@@ -757,3 +757,111 @@ Ansible reports task execution outcomes, not necessarily end-user application he
 Not automatically. It can expose hostnames, usernames, file paths, connection details and command arguments. Secret-bearing tasks should use `no_log: true`, but this does not sanitize every callback, external command or application log. Review and redact output before sharing it.
 </details>
 
+
+
+## DAY 8 — Automating AWS configuration with Ansible + SSM
+
+### 106. What is the purpose of the amazon.aws.aws_ssm connection plugin?
+<details>
+<summary>Answer</summary>
+
+It allows Ansible to execute tasks on an EC2 instance through an AWS Systems Manager session rather than using SSH as the transport. Ansible remains the configuration-management engine; SSM provides the connection path.
+</details>
+
+### 107. Does using SSM mean the EC2 instance needs no network connectivity?
+<details>
+<summary>Answer</summary>
+
+No. The SSM Agent needs outbound connectivity to the regional Systems Manager endpoints, typically over HTTPS TCP 443. The instance also needs access to S3 for file transfers performed by the Ansible SSM connection plugin. Private instances can use NAT or the appropriate VPC endpoints.
+</details>
+
+### 108. What must be installed on the Ansible controller to use the SSM connection?
+<details>
+<summary>Answer</summary>
+
+Install the `amazon.aws` collection, the AWS Session Manager Plugin binary, and compatible AWS SDK dependencies such as boto3 and botocore as required. Configure an AWS identity with the necessary SSM and S3 permissions.
+</details>
+
+### 109. What IAM permissions does the EC2 instance need for Systems Manager?
+<details>
+<summary>Answer</summary>
+
+The instance needs an IAM instance profile with permissions that allow SSM Agent to register and communicate with Systems Manager. The AWS-managed `AmazonSSMManagedInstanceCore` policy is a common baseline. Additional permissions should be added only for the actual workload.
+</details>
+
+### 110. What is the role of the S3 bucket in amazon.aws.aws_ssm?
+<details>
+<summary>Answer</summary>
+
+The connection plugin stages Ansible module files and data through S3. This is required even for command or shell tasks because the module code must reach the target. The controller needs appropriate bucket/object permissions, and the target needs network access to S3 to transfer files using presigned URLs.
+</details>
+
+### 111. Why can S3 be a security concern when using the Ansible SSM connection?
+<details>
+<summary>Answer</summary>
+
+Files transferred through the plugin may contain task data. The plugin attempts to delete objects after a run, but interrupted runs can leave objects behind and bucket versioning can preserve deleted object versions. The plugin documentation warns that secret-bearing transferred files can remain in S3 version history in plaintext. Avoid transferring secrets through this path unless the exposure has been explicitly assessed and controlled.
+</details>
+
+### 112. Does Ansible over SSM require inbound TCP 22?
+<details>
+<summary>Answer</summary>
+
+No. The SSM connection does not require the controller to SSH into the instance, so inbound SSH can remain closed. The instance still needs outbound connectivity to Systems Manager and S3, and the controller needs access to the AWS APIs and staging bucket.
+</details>
+
+### 113. How do you configure a static inventory host for SSM?
+<details>
+<summary>Answer</summary>
+
+Use the EC2 instance ID as the inventory hostname and define connection variables such as `ansible_connection=amazon.aws.aws_ssm`, `ansible_aws_ssm_region` and `ansible_aws_ssm_bucket_name`. Keep credentials outside the inventory and use an approved AWS profile or assumed role on the controller.
+</details>
+
+### 114. What is the difference between the SSM connection plugin and an SSM Run Command module?
+<details>
+<summary>Answer</summary>
+
+The SSM connection plugin provides a transport so normal Ansible tasks and modules can execute on an EC2 managed node. An SSM Run Command module invokes an AWS Systems Manager command operation as an AWS API action. They are different execution models.
+</details>
+
+### 115. What should you check if an EC2 instance is not visible as a managed node?
+<details>
+<summary>Answer</summary>
+
+Check that SSM Agent is installed and running, the instance profile is attached and has required permissions, the Region is correct, and the instance can reach Systems Manager endpoints over outbound HTTPS. For private instances inspect VPC endpoints or NAT, DNS, routes, endpoint policies and security groups.
+</details>
+
+### 116. What should you check if Session Manager works in the AWS console but Ansible fails?
+<details>
+<summary>Answer</summary>
+
+Check that the controller has the amazon.aws collection, Session Manager Plugin and compatible boto3/botocore dependencies. Verify the AWS identity, Region, SSM session permissions, S3 bucket name and S3 permissions. Console access working does not prove that the controller has all plugin prerequisites.
+</details>
+
+### 117. Why does the SSM connection plugin require curl on a Linux managed node?
+<details>
+<summary>Answer</summary>
+
+The plugin uses presigned S3 URLs to transfer files between the controller and the managed instance. The Linux target uses curl to download or upload those files. Network access to the bucket is therefore required.
+</details>
+
+### 118. How do you troubleshoot an S3 AccessDenied error during an SSM Ansible run?
+<details>
+<summary>Answer</summary>
+
+Confirm the controller's AWS identity and check its S3 bucket and object permissions, bucket policy, object prefix, Region and any KMS key policy if SSE-KMS is used. Also confirm the configured bucket is the intended staging bucket and that public access has not been opened as a workaround.
+</details>
+
+### 119. Does the SSM connection plugin support ansible_user or remote_user like SSH?
+<details>
+<summary>Answer</summary>
+
+The plugin documentation states that `ansible_user` and `remote_user` do not configure the remote user in the same way as SSH. The session often runs as the SSM agent's configured operating-system user. Use a supported SSM Session document for run-as behavior or Ansible privilege escalation with `become_user` where appropriate.
+</details>
+
+### 120. How would you design Ansible + SSM for a private EC2 fleet in production?
+<details>
+<summary>Answer</summary>
+
+Use dynamic EC2 inventory filtered by account, Region and tags; instance profiles with least-privilege SSM permissions; private connectivity through required VPC endpoints; a dedicated protected S3 staging bucket; and a controller role with scoped SSM/S3 access. Pin collection versions, avoid transferring secrets through S3, use canary batches, validate application health and audit session activity.
+</details>
