@@ -11,6 +11,7 @@ Ansible is an agentless automation tool commonly used for configuration manageme
 - [DAY 5 — Roles and Reusable Structure](DAY%205%20-%20Ansible%20Roles%20and%20Reusable%20Structure.md)
 - [DAY 6 — Vault and Secret Handling](DAY%206%20-%20Ansible%20Vault%20and%20Secret%20Handling.md)
 - [DAY 7 — Troubleshooting and Verbose Execution](DAY%207%20-%20Ansible%20Troubleshooting%20and%20Verbose%20Execution.md)
+- [DAY 8 — Automating AWS Configuration with Ansible + SSM](DAY%208%20-%20Automating%20AWS%20Configuration%20with%20Ansible%20and%20SSM.md)
 - [Hands-on Labs](LABS.md)
 - [Interview Questions](INTERVIEW%20QUESTIONS.md)
 
@@ -79,13 +80,23 @@ Ansible is an agentless automation tool commonly used for configuration manageme
 - Run twice and verify the second run reports changed=0
 - Diagnose a deliberately failing command with -vvv and interpret its return code
 
+## DAY 8 — Automating AWS configuration with Ansible + SSM
+
+- Understand the SSM connection plugin and how it differs from SSH and SSM Run Command
+- Prepare the controller, EC2 instance profile, SSM Agent, network path and S3 staging bucket
+- Configure a static EC2 inventory using the instance ID and `amazon.aws.aws_ssm`
+- Deploy a small configuration file to a disposable EC2 instance
+- Run twice and verify the second recap reports changed=0
+- Diagnose a deliberate task failure with -vvv and distinguish it from SSM/S3 transport errors
+- Understand S3 staging security, bucket versioning and secret-handling risks
+
 ## Suggested practice sequence
 
 1. Inspect inventory with `ansible-inventory --graph`.
 2. Preview targets with `ansible ... --list-hosts`.
 3. Test connectivity with `ansible ... -m ansible.builtin.ping`.
 4. Gather facts with `ansible ... -m ansible.builtin.setup`.
-5. Run the DAY 1, DAY 2, DAY 3, DAY 4, DAY 5, DAY 6 and DAY 7 playbooks twice and compare recap output.
-6. Trace a variable override, verify handler notification behavior and diagnose the deliberate failures. For DAY 6, use only the fake demo secret and never expose decrypted output. For DAY 7, inspect the deliberate failure with -vvv and redact sensitive diagnostic context.
+5. Run the DAY 1, DAY 2, DAY 3, DAY 4, DAY 5, DAY 6, DAY 7 and DAY 8 playbooks twice and compare recap output.
+6. Trace a variable override, verify handler notification behavior and diagnose the deliberate failures. For DAY 6, use only the fake demo secret and never expose decrypted output. For DAY 7, inspect the deliberate failure with -vvv and redact sensitive diagnostic context. For DAY 8, use a disposable EC2 instance and dedicated S3 staging bucket; never transfer production secrets through the lab.
 
-Use disposable lab hosts. DAY 2 uses a local connection and writes under `/tmp`; DAY 3 installs Nginx and writes under `/var/www/html`. Never commit private keys or plaintext secrets.
+Use disposable lab hosts. DAY 2 uses a local connection and writes under `/tmp`; DAY 3 installs Nginx and writes under `/var/www/html`. DAY 8 requires AWS resources and may incur charges. Never commit private keys or plaintext secrets.
